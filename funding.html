@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Funding – BloodDrop AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>&#128171;</text></svg>">
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon"><i class="fas fa-droplet"></i></span>
+        <span>Blood<b>Drop</b> <b style="color:var(--accent)">AI</b></span>
+      </a>
+      <button class="nav-toggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-request.html">Create Blood Request</a>
+        <a href="donor-dashboard.html">Donor Dashboard</a>
+        <a href="hospital-dashboard.html">Hospital Dashboard</a>
+        <a href="volunteer-dashboard.html">Volunteer Dashboard</a>
+        <a href="admin-dashboard.html">Admin Dashboard</a>
+        <a href="funding.html" class="active">Funding</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container page">
+    <div class="page-header">
+      <div>
+        <h1><i class="fas fa-hand-holding-heart" style="color:var(--primary)"></i> Support BloodDrop AI</h1>
+        <p class="sub">Every donation keeps the AI coordination platform running and saves lives.</p>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <div>
+        <div class="panel funding-card" style="max-width:none">
+          <div class="panel-title"><h3><i class="fas fa-donate"></i> Donate to BloodDrop AI</h3></div>
+          <form id="donate-form" novalidate>
+            <div class="form-group">
+              <label>Donation Amount</label>
+              <div class="amount-options">
+                <label class="amount-option">
+                  <input type="radio" name="amount" value="100">
+                  <span>৳ 100</span>
+                </label>
+                <label class="amount-option">
+                  <input type="radio" name="amount" value="200" checked>
+                  <span>৳ 200</span>
+                </label>
+                <label class="amount-option">
+                  <input type="radio" name="amount" value="500">
+                  <span>৳ 500</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="custom-amount">Or Enter a Custom Amount (৳)</label>
+              <div class="input-icon-wrap">
+                <span class="in-icon"><i class="fas fa-money-bill-wave"></i></span>
+                <input type="number" class="form-control" id="custom-amount" min="10" placeholder="e.g. 1000">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Payment Method</label>
+              <div class="payment-methods">
+                <label class="payment-method">
+                  <input type="radio" name="payment" value="bkash" checked>
+                  <span><span class="pm-logo">bK</span> bKash</span>
+                </label>
+                <label class="payment-method">
+                  <input type="radio" name="payment" value="nagad">
+                  <span><span class="pm-logo">N</span> Nagad</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="donor-name">Your Name (optional)</label>
+              <input type="text" class="form-control" id="donor-name" placeholder="Anonymous donor" value="Rahim Uddin">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block btn-lg"><i class="fas fa-heart"></i> Donate Now</button>
+          </form>
+          <div id="donate-success" class="alert alert-success" style="display:none;margin-top:18px">
+            <div class="alert-icon">🎉</div>
+            <div><b>Thank you for supporting BloodDrop AI!</b><p>Your contribution of ৳200 via bKash has been recorded. Payment ID: BK-88231.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <!-- Campaign progress -->
+        <div class="panel">
+          <div class="panel-title"><h3><i class="fas fa-bullseye"></i> August Campaign</h3><span class="badge badge-green">68% Funded</span></div>
+          <div class="progress green" style="height:14px;margin-bottom:14px"><div style="width:68%"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:0.9rem">
+            <b>Raised: ৳ 2,45,000</b>
+            <span class="sub">Goal: ৳ 3,60,000</span>
+          </div>
+          <div class="grid grid-3" style="margin-top:22px">
+            <div style="text-align:center">
+              <div class="feature-icon icon-red" style="margin:0 auto 8px"><i class="fas fa-tint"></i></div>
+              <b style="display:block">142</b><small class="sub">Donations</small>
+            </div>
+            <div style="text-align:center">
+              <div class="feature-icon icon-blue" style="margin:0 auto 8px"><i class="fas fa-user-friends"></i></div>
+              <b style="display:block">96</b><small class="sub">Supporters</small>
+            </div>
+            <div style="text-align:center">
+              <div class="feature-icon icon-green" style="margin:0 auto 8px"><i class="fas fa-hand-holding-usd"></i></div>
+              <b style="display:block">৳ 2,45,000</b><small class="sub">Raised</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Where the money goes -->
+        <div class="panel">
+          <div class="panel-title"><h3><i class="fas fa-chart-pie"></i> Where Your Money Goes</h3></div>
+          <div class="bar-row">
+            <div class="bar-head"><span>AI Infrastructure &amp; Hosting</span><b>40%</b></div>
+            <div class="progress"><div style="width:40%"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-head"><span>Donor Transport Support</span><b>30%</b></div>
+            <div class="progress blue"><div style="width:30%"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-head"><span>Hospital Coordination</span><b>20%</b></div>
+            <div class="progress green"><div style="width:20%"></div></div>
+          </div>
+          <div class="bar-row" style="margin:0">
+            <div class="bar-head"><span>Awareness Campaigns</span><b>10%</b></div>
+            <div class="progress gold"><div style="width:10%"></div></div>
+          </div>
+        </div>
+
+        <!-- Why donate -->
+        <div class="panel">
+          <div class="panel-title"><h3><i class="fas fa-question-circle"></i> Why Support Us?</h3></div>
+          <div style="display:flex;flex-direction:column;gap:12px;font-size:0.9rem">
+            <div style="display:flex;gap:12px"><i class="fas fa-heart" style="color:var(--primary);margin-top:3px"></i><p>Every minute matters — our AI finds the best donor in under 5 minutes.</p></div>
+            <div style="display:flex;gap:12px"><i class="fas fa-truck" style="color:var(--accent);margin-top:3px"></i><p>Funds help transport donors to hospitals when emergency calls come.</p></div>
+            <div style="display:flex;gap:12px"><i class="fas fa-server" style="color:var(--success);margin-top:3px"></i><p>Keeps the coordination platform running 24/7 for every hospital partner.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="logo" style="color:#fff;margin-bottom:14px">
+            <span class="logo-icon"><i class="fas fa-droplet"></i></span>
+            <span>Blood<b>Drop</b> <b style="color:#42A5F5">AI</b></span>
+          </div>
+          <p>An intelligent multi-agent blood and blood component donation coordination system.</p>
+        </div>
+        <div>
+          <h4>Platform</h4>
+          <a href="dashboard.html">Dashboard</a>
+          <a href="create-request.html">Create Blood Request</a>
+          <a href="ai-coordination.html">AI Coordination</a>
+          <a href="analytics.html">Analytics</a>
+        </div>
+        <div>
+          <h4>Portals</h4>
+          <a href="donor-dashboard.html">Donor Portal</a>
+          <a href="hospital-dashboard.html">Hospital Portal</a>
+          <a href="volunteer-dashboard.html">Volunteer Portal</a>
+          <a href="admin-dashboard.html">Admin Portal</a>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <div class="footer-contact"><i class="fas fa-map-marker-alt"></i> Dhaka Medical College Hospital, Dhaka</div>
+          <div class="footer-contact"><i class="fas fa-phone-alt"></i> +880 1700-000000</div>
+          <div class="footer-contact"><i class="fas fa-envelope"></i> support@blooddrop.ai</div>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2026 BloodDrop AI · Software Engineering Project Prototype</div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

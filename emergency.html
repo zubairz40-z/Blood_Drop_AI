@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Notification – BloodDrop AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>&#128171;</text></svg>">
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon"><i class="fas fa-droplet"></i></span>
+        <span>Blood<b>Drop</b> <b style="color:var(--accent)">AI</b></span>
+      </a>
+      <button class="nav-toggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-request.html">Create Blood Request</a>
+        <a href="donor-dashboard.html">Donor Dashboard</a>
+        <a href="hospital-dashboard.html">Hospital Dashboard</a>
+        <a href="volunteer-dashboard.html">Volunteer Dashboard</a>
+        <a href="admin-dashboard.html">Admin Dashboard</a>
+        <a href="funding.html">Funding</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container page">
+    <div class="page-header">
+      <div>
+        <h1><i class="fas fa-bell" style="color:var(--primary)"></i> Emergency Notification</h1>
+        <p class="sub">An emergency blood request has been assigned to you.</p>
+      </div>
+      <span class="badge badge-red"><i class="fas fa-bolt"></i> Respond within 3 minutes</span>
+    </div>
+
+    <div style="max-width:640px;margin:0 auto">
+      <div id="emergency-card" class="card" style="padding:0;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#C62828,#8E0000);color:#fff;padding:24px;display:flex;align-items:center;gap:16px">
+          <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0">
+            <i class="fas fa-bell"></i>
+          </div>
+          <div>
+            <h2 style="font-size:1.25rem">Emergency Blood Required</h2>
+            <p style="opacity:0.9;font-size:0.9rem">Urgent · Received 30 seconds ago</p>
+          </div>
+        </div>
+
+        <div style="padding:24px">
+          <div class="info-list" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
+            <div class="info-item"><span>Blood Group</span><b style="font-size:1.3rem;color:var(--primary)">O+</b></div>
+            <div class="info-item"><span>Donation Type</span><b>Platelets</b></div>
+            <div class="info-item"><span>Hospital</span><b>Dhaka Medical College Hospital</b></div>
+            <div class="info-item"><span>Distance</span><b><i class="fas fa-location-arrow" style="color:var(--accent)"></i> 2.4 km</b></div>
+            <div class="info-item"><span>Units</span><b>1 Unit</b></div>
+            <div class="info-item"><span>Requested By</span><b>Sarah Ahmed</b></div>
+          </div>
+
+          <div style="background:rgba(21,101,192,0.07);border:1px solid rgba(21,101,192,0.2);border-radius:12px;padding:14px 16px;margin-bottom:22px;font-size:0.88rem;color:var(--text)">
+            <i class="fas fa-route" style="color:var(--accent)"></i>
+            Estimated travel time: <b>8 minutes</b> · <a href="map.html" style="color:var(--accent);font-weight:600">Open map</a>
+          </div>
+
+          <div id="emergency-result" style="display:none;margin-bottom:18px"></div>
+
+          <div class="emergency-actions" style="display:flex;gap:12px">
+            <button id="accept-btn" class="btn btn-success btn-lg" style="flex:1"><i class="fas fa-check-circle"></i> Accept</button>
+            <button id="decline-btn" class="btn btn-outline btn-lg" style="flex:1"><i class="fas fa-times-circle"></i> Decline</button>
+          </div>
+        </div>
+      </div>
+
+      <p style="text-align:center;color:var(--text-muted);font-size:0.85rem;margin-top:16px">
+        <i class="fas fa-info-circle"></i> This notification is sent automatically by the BloodDrop AI GPS Coordination Agent.
+      </p>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="logo" style="color:#fff;margin-bottom:14px">
+            <span class="logo-icon"><i class="fas fa-droplet"></i></span>
+            <span>Blood<b>Drop</b> <b style="color:#42A5F5">AI</b></span>
+          </div>
+          <p>An intelligent multi-agent blood and blood component donation coordination system.</p>
+        </div>
+        <div>
+          <h4>Platform</h4>
+          <a href="dashboard.html">Dashboard</a>
+          <a href="create-request.html">Create Blood Request</a>
+          <a href="ai-coordination.html">AI Coordination</a>
+          <a href="analytics.html">Analytics</a>
+        </div>
+        <div>
+          <h4>Portals</h4>
+          <a href="donor-dashboard.html">Donor Portal</a>
+          <a href="hospital-dashboard.html">Hospital Portal</a>
+          <a href="volunteer-dashboard.html">Volunteer Portal</a>
+          <a href="admin-dashboard.html">Admin Portal</a>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <div class="footer-contact"><i class="fas fa-map-marker-alt"></i> Dhaka Medical College Hospital, Dhaka</div>
+          <div class="footer-contact"><i class="fas fa-phone-alt"></i> +880 1700-000000</div>
+          <div class="footer-contact"><i class="fas fa-envelope"></i> support@blooddrop.ai</div>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2026 BloodDrop AI · Software Engineering Project Prototype</div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
