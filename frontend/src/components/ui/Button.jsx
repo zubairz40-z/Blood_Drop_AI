@@ -2,7 +2,7 @@ import { Loader2 } from 'lucide-react'
 
 const variants = {
   primary:
-    'bg-[#F72585] hover:bg-[#E91E72] text-white shadow-sm active:scale-[0.97]',
+    'bg-[#F72585] hover:bg-[#E91E72] hover:scale-[1.02] text-white shadow-sm active:scale-[0.97]',
   secondary:
     'bg-neutral-100 hover:bg-neutral-200 text-text-charcoal border border-border',
   outline:

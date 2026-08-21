@@ -4,10 +4,24 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 
-createRoot(document.getElementById('root')).render(
+const root = createRoot(document.getElementById('root'))
+
+root.render(
   <StrictMode>
     <BrowserRouter>
       <App />
     </BrowserRouter>
   </StrictMode>,
 )
+
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const bootLoader = document.getElementById('blooddrop-boot-loader')
+    if (bootLoader) {
+      bootLoader.classList.add('bd-fade-out')
+      bootLoader.addEventListener('transitionend', () => {
+        bootLoader.remove()
+      }, { once: true })
+    }
+  })
+})

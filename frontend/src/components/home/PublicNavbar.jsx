@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
+import { useReducedMotion, motion } from 'framer-motion'
 
 const navLinks = [
   { label: 'How It Works', href: '#how-it-works' },
@@ -12,6 +14,7 @@ const navLinks = [
 
 function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const shouldReduceMotion = useReducedMotion()
 
   const handleClick = (e, href) => {
     e.preventDefault()
@@ -21,14 +24,19 @@ function PublicNavbar() {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-border">
+    <motion.nav
+      className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-border"
+      initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
+      animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <a href="#" className="flex items-center gap-2 shrink-0">
+          <Link to="/" className="flex items-center gap-2 shrink-0">
             <img src="/blood-drop.png" alt="" className="w-7 h-7" />
             <span className="text-lg font-bold text-text-dark">BloodDrop</span>
             <span className="text-[10px] font-bold bg-brand-soft text-brand px-1.5 py-0.5 rounded-full">AI</span>
-          </a>
+          </Link>
 
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
@@ -44,12 +52,12 @@ function PublicNavbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-2">
-            <a href="/login" className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-dark transition-colors rounded-lg hover:bg-neutral-50">
+            <Link to="/login" className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-dark transition-colors rounded-lg hover:bg-neutral-50">
               Login
-            </a>
-            <a href="/register" className="px-5 py-2 text-sm font-semibold text-white bg-brand hover:bg-brand-hover rounded-full transition-colors shadow-sm">
+            </Link>
+            <Link to="/register" className="px-5 py-2 text-sm font-semibold text-white bg-brand hover:bg-brand-hover rounded-full transition-colors shadow-sm">
               Register
-            </a>
+            </Link>
           </div>
 
           <button
@@ -77,17 +85,17 @@ function PublicNavbar() {
               </a>
             ))}
             <div className="pt-3 border-t border-border flex gap-2">
-              <a href="/login" className="flex-1 text-center px-4 py-2.5 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-neutral-50 transition-colors">
+              <Link to="/login" className="flex-1 text-center px-4 py-2.5 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-neutral-50 transition-colors">
                 Login
-              </a>
-              <a href="/register" className="flex-1 text-center px-4 py-2.5 text-sm font-semibold text-white bg-brand hover:bg-brand-hover rounded-full transition-colors">
+              </Link>
+              <Link to="/register" className="flex-1 text-center px-4 py-2.5 text-sm font-semibold text-white bg-brand hover:bg-brand-hover rounded-full transition-colors">
                 Register
-              </a>
+              </Link>
             </div>
           </div>
         </div>
       )}
-    </nav>
+    </motion.nav>
   )
 }
 

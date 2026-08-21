@@ -1,4 +1,4 @@
-
+import { Link } from 'react-router-dom'
 
 const footerLinks = {
   Platform: [
@@ -35,10 +35,10 @@ function PublicFooter() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-8 pb-12 border-b border-neutral-800">
           <div className="col-span-2 sm:col-span-4 lg:col-span-1">
-            <a href="#" className="flex items-center gap-2 mb-3">
+            <Link to="/" className="flex items-center gap-2 mb-3">
               <img src="/blood-drop.png" alt="" className="w-6 h-6" />
               <span className="text-base font-bold text-white">BloodDrop AI</span>
-            </a>
+            </Link>
             <p className="text-sm text-neutral-500 leading-relaxed max-w-xs">
               Intelligent blood donation coordination connecting patients, donors, hospitals, and volunteers.
             </p>
@@ -50,13 +50,22 @@ function PublicFooter() {
               <ul className="space-y-2">
                 {links.map((link) => (
                   <li key={link.label}>
-                    <a
-                      href={link.href}
-                      onClick={(e) => handleClick(e, link.href)}
-                      className="text-sm text-neutral-500 hover:text-white transition-colors"
-                    >
-                      {link.label}
-                    </a>
+                    {link.href.startsWith('#') ? (
+                      <a
+                        href={link.href}
+                        onClick={(e) => handleClick(e, link.href)}
+                        className="text-sm text-neutral-500 hover:text-white transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={link.href}
+                        className="text-sm text-neutral-500 hover:text-white transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

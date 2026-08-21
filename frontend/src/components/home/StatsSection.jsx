@@ -1,4 +1,5 @@
 import { Droplets, Cpu, Users, MapPin } from 'lucide-react'
+import { useReducedMotion, motion } from 'framer-motion'
 import StatCard from '../ui/StatCard'
 
 const stats = [
@@ -8,7 +9,14 @@ const stats = [
   { title: 'Adaptive Search', value: '10→30 km', icon: MapPin, description: 'Expanding radius concept' },
 ]
 
+const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }
+const cardUp = { hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } } }
+const cardUpReduced = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.4, ease: 'easeOut' } } }
+
 function StatsSection() {
+  const shouldReduceMotion = useReducedMotion()
+  const cardVariant = shouldReduceMotion ? cardUpReduced : cardUp
+
   return (
     <section className="py-20 sm:py-28 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,11 +28,19 @@ function StatsSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-40px' }}
+          variants={stagger}
+        >
           {stats.map((s) => (
-            <StatCard key={s.title} {...s} />
+            <motion.div key={s.title} variants={cardVariant}>
+              <StatCard {...s} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )

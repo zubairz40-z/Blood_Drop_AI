@@ -1,12 +1,27 @@
 import { CheckCircle, Building2 } from 'lucide-react'
+import { useReducedMotion, motion } from 'framer-motion'
 import Badge from '../ui/Badge'
 
+const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: 'easeOut' } } }
+const fadeUpReduced = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.45, ease: 'easeOut' } } }
+const fadeLeft = { hidden: { opacity: 0, x: -25 }, visible: { opacity: 1, x: 0, transition: { duration: 0.55, ease: 'easeOut' } } }
+
 function HospitalSection() {
+  const shouldReduceMotion = useReducedMotion()
+  const textVariant = shouldReduceMotion ? fadeUpReduced : fadeUp
+  const cardVariant = shouldReduceMotion ? fadeUpReduced : fadeLeft
+
   return (
     <section id="hospitals" className="py-20 sm:py-28 bg-bg scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="order-2 lg:order-1">
+          <motion.div
+            className="order-2 lg:order-1"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+            variants={cardVariant}
+          >
             <div className="bg-white border border-border rounded-2xl shadow-card p-6 max-w-sm mx-auto space-y-4">
               <div className="flex items-center gap-2 mb-2">
                 <Building2 className="w-5 h-5 text-brand" />
@@ -36,9 +51,15 @@ function HospitalSection() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="order-1 lg:order-2">
+          <motion.div
+            className="order-1 lg:order-2"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+            variants={textVariant}
+          >
             <p className="text-xs font-semibold text-brand uppercase tracking-wider mb-2">For Hospitals</p>
             <h2 className="text-3xl sm:text-4xl font-bold text-text-dark mb-4 leading-tight">
               Faster Coordination for Hospitals
@@ -59,7 +80,7 @@ function HospitalSection() {
                 </li>
               ))}
             </ul>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

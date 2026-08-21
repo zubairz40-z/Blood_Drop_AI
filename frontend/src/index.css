@@ -29,6 +29,10 @@
 }
 
 @layer base {
+  html {
+    background-color: var(--color-bg);
+  }
+
   body {
     background-color: var(--color-bg);
     color: var(--color-text-dark);
