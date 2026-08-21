@@ -40,7 +40,7 @@ export const donationTypeOptions = [
 
 export const nearbyRequests = [
   {
-    id: 'req-1',
+    id: 'REQ-1001',
     bloodGroup: 'O+',
     donationType: 'Platelets',
     hospital: 'Dhaka Medical College',
@@ -48,7 +48,7 @@ export const nearbyRequests = [
     emergency: 'CRITICAL',
   },
   {
-    id: 'req-2',
+    id: 'REQ-1002',
     bloodGroup: 'O+',
     donationType: 'Whole Blood',
     hospital: 'Square Hospital',
@@ -56,7 +56,7 @@ export const nearbyRequests = [
     emergency: 'URGENT',
   },
   {
-    id: 'req-3',
+    id: 'REQ-1003',
     bloodGroup: 'O+',
     donationType: 'Plasma',
     hospital: 'United Hospital',

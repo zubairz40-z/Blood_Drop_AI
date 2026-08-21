@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import Badge from '../ui/Badge'
 
@@ -8,6 +9,7 @@ const emergencyConfig = {
 }
 
 function NearbyRequestCard({ request }) {
+  const navigate = useNavigate()
   const emergency = emergencyConfig[request.emergency] || emergencyConfig.NORMAL
 
   return (
@@ -25,7 +27,10 @@ function NearbyRequestCard({ request }) {
         <p className="text-xs text-text-muted mt-0.5">{request.distance} km away</p>
       </div>
 
-      <button className="flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-hover transition-colors cursor-pointer flex-shrink-0">
+      <button
+        onClick={() => navigate(`/donor/requests/${request.id}`)}
+        className="flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-hover transition-colors cursor-pointer flex-shrink-0"
+      >
         View Request
         <ChevronRight className="w-4 h-4" />
       </button>

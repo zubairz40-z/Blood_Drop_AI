@@ -8,6 +8,8 @@ import DashboardLayout from '../layouts/DashboardLayout'
 import DashboardPlaceholder from '../components/dashboard/DashboardPlaceholder'
 import DonorDashboard from '../pages/donor/DonorDashboard'
 import DonorProfile from '../pages/donor/DonorProfile'
+import DonorEmergencyRequests from '../pages/donor/DonorEmergencyRequests'
+import DonorEmergencyRequestDetails from '../pages/donor/DonorEmergencyRequestDetails'
 
 function AppRoutes() {
   return (
@@ -21,6 +23,8 @@ function AppRoutes() {
       <Route path="/donor" element={<DashboardLayout role="donor" />}>
         <Route index element={<DonorDashboard />} />
         <Route path="profile" element={<DonorProfile />} />
+        <Route path="requests" element={<DonorEmergencyRequests />} />
+        <Route path="requests/:requestId" element={<DonorEmergencyRequestDetails />} />
       </Route>
       <Route path="/patient" element={<DashboardLayout role="patient" />}>
         <Route index element={<DashboardPlaceholder title="Patient Dashboard" description="Patient dashboard content will be added in a later step." role="Patient" />} />
