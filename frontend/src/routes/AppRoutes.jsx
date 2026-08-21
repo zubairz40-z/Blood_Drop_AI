@@ -7,6 +7,7 @@ import ForgotPassword from '../pages/auth/ForgotPassword'
 import DashboardLayout from '../layouts/DashboardLayout'
 import DashboardPlaceholder from '../components/dashboard/DashboardPlaceholder'
 import DonorDashboard from '../pages/donor/DonorDashboard'
+import DonorProfile from '../pages/donor/DonorProfile'
 
 function AppRoutes() {
   return (
@@ -19,6 +20,7 @@ function AppRoutes() {
 
       <Route path="/donor" element={<DashboardLayout role="donor" />}>
         <Route index element={<DonorDashboard />} />
+        <Route path="profile" element={<DonorProfile />} />
       </Route>
       <Route path="/patient" element={<DashboardLayout role="patient" />}>
         <Route index element={<DashboardPlaceholder title="Patient Dashboard" description="Patient dashboard content will be added in a later step." role="Patient" />} />
