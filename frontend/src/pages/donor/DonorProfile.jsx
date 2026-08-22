@@ -153,7 +153,7 @@ function DonorProfile() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="primary">DONOR</Badge>
+          <Badge variant="role-donor">Donor</Badge>
           <button
             onClick={() => navigate('/donor')}
             className="text-sm text-text-muted hover:text-text-dark transition-colors cursor-pointer"

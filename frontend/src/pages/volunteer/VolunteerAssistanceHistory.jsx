@@ -43,7 +43,7 @@ function VolunteerAssistanceHistory() {
             title="Assistance History"
             description="Review your completed volunteer assistance tasks."
           />
-          <Badge variant="primary">VOLUNTEER</Badge>
+          <Badge variant="role-volunteer">Volunteer</Badge>
         </div>
       </div>
 

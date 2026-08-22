@@ -19,7 +19,7 @@ function AdminRiskAlerts() {
             title="Risk Alerts"
             description="System risk monitoring and suspicious activity alerts."
           />
-          <Badge variant="primary">ADMIN</Badge>
+          <Badge variant="role-admin">Admin</Badge>
         </div>
       </div>
 
@@ -28,7 +28,7 @@ function AdminRiskAlerts() {
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="flex items-center gap-4">
+        <Card className="flex items-center gap-4 hover:shadow-md transition-shadow duration-200">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
             <span className="text-lg font-bold text-emerald-600">{demoRiskSummary.systemRisk}</span>
           </div>
@@ -37,7 +37,7 @@ function AdminRiskAlerts() {
             <p className="text-xs text-text-muted mt-0.5">Overall risk level</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-4">
+        <Card className="flex items-center gap-4 hover:shadow-md transition-shadow duration-200">
           <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center flex-shrink-0">
             <span className="text-lg font-bold text-amber-600">{demoRiskSummary.suspiciousActivities}</span>
           </div>
@@ -46,7 +46,7 @@ function AdminRiskAlerts() {
             <p className="text-xs text-text-muted mt-0.5">Flagged for review</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-4">
+        <Card className="flex items-center gap-4 hover:shadow-md transition-shadow duration-200">
           <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center flex-shrink-0">
             <span className="text-lg font-bold text-blue-600">{demoRiskSummary.recommendations}</span>
           </div>

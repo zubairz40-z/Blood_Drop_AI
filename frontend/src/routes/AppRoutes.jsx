@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Home from '../pages/Home'
 import DesignSystem from '../pages/DesignSystem'
+import Funding from '../pages/Funding'
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
 import ForgotPassword from '../pages/auth/ForgotPassword'
@@ -16,6 +17,7 @@ import PatientRequests from '../pages/patient/PatientRequests'
 import RequestTracking from '../pages/patient/RequestTracking'
 import AICoordination from '../pages/patient/AICoordination'
 import PatientProfile from '../pages/patient/PatientProfile'
+import RequestMap from '../pages/patient/RequestMap'
 import HospitalDashboard from '../pages/hospital/HospitalDashboard'
 import HospitalRequests from '../pages/hospital/HospitalRequests'
 import HospitalMatches from '../pages/hospital/HospitalMatches'
@@ -33,12 +35,14 @@ import AdminAISystem from '../pages/admin/AdminAISystem'
 import AdminRiskAlerts from '../pages/admin/AdminRiskAlerts'
 import AdminFunding from '../pages/admin/AdminFunding'
 import NotificationsPage from '../pages/notifications/NotificationsPage'
+import NotFound from '../pages/NotFound'
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/design-system" element={<DesignSystem />} />
+      <Route path="/funding" element={<Funding />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -50,6 +54,7 @@ function AppRoutes() {
         <Route path="requests/:requestId" element={<DonorEmergencyRequestDetails />} />
         <Route path="history" element={<DonorDonationHistory />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
 
       <Route path="/patient" element={<DashboardLayout role="patient" />}>
@@ -58,8 +63,10 @@ function AppRoutes() {
         <Route path="requests" element={<PatientRequests />} />
         <Route path="requests/:requestId/tracking" element={<RequestTracking />} />
         <Route path="requests/:requestId/coordination" element={<AICoordination />} />
+        <Route path="requests/:requestId/map" element={<RequestMap />} />
         <Route path="profile" element={<PatientProfile />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
 
       <Route path="/hospital" element={<DashboardLayout role="hospital" />}>
@@ -69,6 +76,7 @@ function AppRoutes() {
         <Route path="inventory" element={<HospitalInventoryPage />} />
         <Route path="donations" element={<HospitalDonations />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
 
       <Route path="/volunteer" element={<DashboardLayout role="volunteer" />}>
@@ -77,6 +85,7 @@ function AppRoutes() {
         <Route path="history" element={<VolunteerAssistanceHistory />} />
         <Route path="profile" element={<VolunteerProfile />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
 
       <Route path="/admin" element={<DashboardLayout role="admin" />}>
@@ -88,7 +97,10 @@ function AppRoutes() {
         <Route path="risk-alerts" element={<AdminRiskAlerts />} />
         <Route path="funding" element={<AdminFunding />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
+
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }

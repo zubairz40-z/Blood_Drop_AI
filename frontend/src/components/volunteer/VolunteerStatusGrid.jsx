@@ -8,24 +8,28 @@ function VolunteerStatusGrid({ assignedTasks, activeEmergency, currentDistance, 
         title="Assigned Tasks"
         value={assignedTasks}
         icon={ClipboardList}
+        tone="brand"
         description="Currently assigned"
       />
       <StatCard
         title="Active Emergency"
         value={activeEmergency}
         icon={AlertTriangle}
+        tone="blood"
         description="Emergency level"
       />
       <StatCard
         title="Current Distance"
         value={`${currentDistance} km`}
         icon={MapPin}
+        tone="info"
         description="To destination"
       />
       <StatCard
         title="Assistance Status"
         value={assistanceStatus}
         icon={Activity}
+        tone="success"
         description="Current task phase"
       />
     </div>

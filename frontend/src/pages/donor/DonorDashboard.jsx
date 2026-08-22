@@ -23,7 +23,7 @@ function DonorDashboard() {
             <h1 className="text-2xl font-bold text-text-dark">
               Welcome back, {demoDonor.name}
             </h1>
-            <Badge variant="primary">DONOR</Badge>
+            <Badge variant="role-donor">Active Donor</Badge>
           </div>
           <p className="text-sm text-text-muted mt-1">
             Stay ready to donate and respond when someone nearby needs your help.

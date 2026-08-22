@@ -29,7 +29,7 @@ function AICoordinationSection() {
             Intelligent Coordination Behind Every Request
           </h2>
           <p className="text-text-muted">
-            Five specialized agents work together to match, verify, and coordinate blood donations efficiently.
+            Five specialized agents work together to match, verify, and coordinate blood donations.
           </p>
         </div>
 

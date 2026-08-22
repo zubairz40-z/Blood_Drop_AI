@@ -28,7 +28,7 @@ function VolunteerTasks() {
             title="Assigned Tasks"
             description="View your current and past volunteer assignments."
           />
-          <Badge variant="primary">VOLUNTEER</Badge>
+          <Badge variant="role-volunteer">Volunteer</Badge>
         </div>
       </div>
 

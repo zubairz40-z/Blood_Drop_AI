@@ -73,7 +73,7 @@ function HospitalDashboard() {
               title="Hospital Dashboard"
               description="Manage blood requests, donor matches, donations, and inventory from one place."
             />
-            <Badge variant="primary">HOSPITAL</Badge>
+            <Badge variant="role-hospital">Hospital</Badge>
           </div>
         </div>
         <Button icon={Plus} onClick={() => setCreateOpen(true)}>

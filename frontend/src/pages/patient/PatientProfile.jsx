@@ -141,7 +141,7 @@ function PatientProfile() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="primary">PATIENT</Badge>
+          <Badge variant="role-patient">Patient</Badge>
           <button
             onClick={() => navigate('/patient')}
             className="text-sm text-text-muted hover:text-text-dark transition-colors cursor-pointer"

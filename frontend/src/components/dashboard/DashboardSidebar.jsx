@@ -3,16 +3,18 @@ import { LifeBuoy } from 'lucide-react'
 
 function DashboardSidebar({ navigation = [], roleLabel = '' }) {
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-[260px] lg:fixed lg:inset-y-0 bg-white border-r border-border z-30">
-      <div className="flex items-center gap-2.5 px-5 h-16 border-b border-border shrink-0">
+    <aside className="hidden lg:flex lg:flex-col lg:w-[260px] lg:fixed lg:inset-y-0 bg-white z-30">
+      <div className="flex items-center gap-2.5 px-5 h-16 bg-brand shrink-0">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/blood-drop.png" alt="" className="w-6 h-6" />
-          <span className="text-lg font-bold text-text-dark">BloodDrop</span>
-          <span className="text-[10px] font-bold bg-brand-soft text-brand px-1.5 py-0.5 rounded-full">AI</span>
+          <div className="p-1.5 bg-white rounded-lg">
+            <img src="/blood-drop.png" alt="" className="w-5 h-5" />
+          </div>
+          <span className="text-lg font-bold text-white">BloodDrop</span>
+          <span className="text-[10px] font-bold bg-white/15 text-white border border-white/20 px-1.5 py-0.5 rounded-full">AI</span>
         </Link>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Dashboard navigation">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 border-r border-border" aria-label="Dashboard navigation">
         <ul className="space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon
@@ -22,9 +24,9 @@ function DashboardSidebar({ navigation = [], roleLabel = '' }) {
                   to={item.path}
                   end={item.path === `/${roleLabel.toLowerCase()}`}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                       isActive
-                        ? 'bg-brand-soft text-brand'
+                        ? 'bg-brand-soft text-brand font-semibold shadow-sm shadow-brand/10'
                         : 'text-text-secondary hover:bg-neutral-50 hover:text-text-dark'
                     }`
                   }
@@ -38,10 +40,10 @@ function DashboardSidebar({ navigation = [], roleLabel = '' }) {
         </ul>
       </nav>
 
-      <div className="px-4 py-4 border-t border-border">
+      <div className="px-4 py-4 border-t border-border border-r border-border">
         <a
           href="/#support"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-text-muted hover:bg-neutral-50 hover:text-text-dark transition-colors"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-text-muted hover:bg-brand-soft/50 hover:text-brand transition-colors"
         >
           <LifeBuoy className="w-4 h-4" />
           <span>Need help?</span>

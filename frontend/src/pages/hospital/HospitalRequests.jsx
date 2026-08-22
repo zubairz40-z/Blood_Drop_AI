@@ -39,7 +39,7 @@ function HospitalRequests() {
               title="Blood Requests"
               description="View and manage all active blood requests for your hospital."
             />
-            <Badge variant="primary">HOSPITAL</Badge>
+            <Badge variant="role-hospital">Hospital</Badge>
           </div>
         </div>
         <Button icon={Plus} onClick={() => setCreateOpen(true)}>

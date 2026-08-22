@@ -43,7 +43,7 @@ export const demoVolunteerCompletedTasks = [
 export const demoVolunteerProfile = {
   name: 'Demo Volunteer',
   email: 'demo.volunteer@email.com',
-  phone: '+880 1912345678',
+  phone: '+880 1XXXXXXXXX',
   location: 'Dhanmondi, Dhaka',
   availability: true,
 }

@@ -36,11 +36,11 @@ function NotificationBell({ count = 0, notifications = [], role = 'Donor', class
         onClick={() => setOpen(!open)}
         aria-label={`Notifications${count > 0 ? `, ${count} unread` : ''}`}
         aria-expanded={open}
-        className="relative p-2 rounded-xl text-text-muted hover:text-text-dark hover:bg-neutral-100 transition-colors cursor-pointer"
+        className="relative p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
       >
         <Bell className="w-5 h-5" />
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 bg-brand text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[18px] h-[18px]">
+          <span className="absolute -top-0.5 -right-0.5 bg-brand text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[18px] h-[18px] ring-2 ring-white">
             {count > 99 ? '99+' : count}
           </span>
         )}
@@ -48,11 +48,12 @@ function NotificationBell({ count = 0, notifications = [], role = 'Donor', class
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-2xl shadow-elevated overflow-hidden z-50">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <p className="text-sm font-semibold text-text-dark">Notifications</p>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-brand-soft/20">
+            <p className="text-sm font-semibold text-brand">Notifications</p>
             {count > 0 && (
               <button
                 onClick={() => setOpen(false)}
+                aria-label="Mark all as read"
                 className="text-xs text-brand hover:text-brand-hover font-medium cursor-pointer"
               >
                 <CheckCheck className="w-4 h-4" />
@@ -68,12 +69,21 @@ function NotificationBell({ count = 0, notifications = [], role = 'Donor', class
               latest.map((n) => (
                 <div
                   key={n.id}
+                  role="button"
+                  tabIndex={0}
                   className={`px-4 py-3 border-b border-border last:border-b-0 hover:bg-neutral-50 transition-colors cursor-pointer ${
                     !n.read ? 'bg-brand-soft/30' : ''
                   }`}
                   onClick={() => {
                     setOpen(false)
                     if (n.actionPath) navigate(n.actionPath)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setOpen(false)
+                      if (n.actionPath) navigate(n.actionPath)
+                    }
                   }}
                 >
                   <div className="flex items-start gap-2">

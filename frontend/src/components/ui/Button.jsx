@@ -2,7 +2,7 @@ import { Loader2 } from 'lucide-react'
 
 const variants = {
   primary:
-    'bg-[#F72585] hover:bg-[#E91E72] hover:scale-[1.02] text-white shadow-sm active:scale-[0.97]',
+    'bg-brand hover:bg-brand-hover hover:scale-[1.02] text-white shadow-sm active:scale-[0.97]',
   secondary:
     'bg-neutral-100 hover:bg-neutral-200 text-text-charcoal border border-border',
   outline:
@@ -35,7 +35,7 @@ function Button({
     <button
       type={type}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center font-medium rounded-full transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F72585] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex items-center justify-center font-medium rounded-full transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
       {...props}
     >
       {loading && <Loader2 className="w-4 h-4 animate-spin" />}

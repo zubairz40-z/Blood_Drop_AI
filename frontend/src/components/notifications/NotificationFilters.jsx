@@ -13,7 +13,7 @@ function NotificationFilters({ active, onChange, counts }) {
           onClick={() => onChange(f.key)}
           className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors cursor-pointer ${
             active === f.key
-              ? 'bg-brand text-white'
+              ? 'bg-brand text-white shadow-sm shadow-brand/20'
               : 'bg-neutral-100 text-text-secondary hover:bg-neutral-200'
           }`}
         >

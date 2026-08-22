@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { SearchX, Sparkles } from 'lucide-react'
+import { SearchX, Sparkles, Map } from 'lucide-react'
 import PageHeader from '../../components/common/PageHeader'
 import Card from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
@@ -83,6 +83,14 @@ function RequestTracking() {
           onClick={() => navigate(`/patient/requests/${tracking.requestId}/coordination`)}
         >
           View AI Coordination
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={Map}
+          onClick={() => navigate(`/patient/requests/${tracking.requestId}/map`)}
+        >
+          View Map
         </Button>
       </div>
 

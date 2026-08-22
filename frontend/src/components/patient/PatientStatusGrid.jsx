@@ -8,24 +8,28 @@ function PatientStatusGrid({ activeRequests, completedRequests, currentRequestId
         title="Active Requests"
         value={activeRequests}
         icon={FileText}
+        tone="blood"
         description="Currently in progress"
       />
       <StatCard
         title="Completed Requests"
         value={completedRequests}
         icon={CheckCircle}
+        tone="success"
         description="Successfully fulfilled"
       />
       <StatCard
         title="Current Request"
         value={currentRequestId}
         icon={Clock}
+        tone="info"
         description="Latest active request"
       />
       <StatCard
         title="Matched Donor"
         value={matchedDonorCount > 0 ? `${matchedDonorCount} donor` : 'None'}
         icon={Users}
+        tone={matchedDonorCount > 0 ? 'success' : 'warning'}
         description={matchedDonorCount > 0 ? 'Donor matched' : 'Searching for donors'}
       />
     </div>

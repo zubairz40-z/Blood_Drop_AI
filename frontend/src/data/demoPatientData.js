@@ -67,7 +67,7 @@ export const patientNotifications = [
   {
     id: 'pnoti-2',
     message: 'A compatible donor was found for REQ-2001.',
-    time: '18 min ago',
+    time: '8 min ago',
     unread: true,
   },
   {

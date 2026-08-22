@@ -34,7 +34,7 @@ function PatientDashboard() {
               title="Patient Dashboard"
               description="Create and monitor blood requests from one place."
             />
-            <Badge variant="primary">PATIENT</Badge>
+            <Badge variant="role-patient">Patient</Badge>
           </div>
         </div>
         <Button

@@ -34,7 +34,8 @@ function SearchBar({
         value={val}
         onChange={handleChange}
         placeholder={placeholder}
-        className="w-full pl-10 pr-9 py-2.5 text-sm bg-neutral-50 border border-border rounded-xl transition-all duration-200 placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-[#F72585]/30 focus:border-[#F72585] focus:bg-white"
+        aria-label={placeholder}
+        className="w-full pl-10 pr-9 py-2.5 text-sm bg-neutral-50 border border-border rounded-xl transition-all duration-200 placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand focus:bg-white"
       />
       {val && (
         <button

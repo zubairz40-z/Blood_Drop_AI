@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { SearchX } from 'lucide-react'
+import { SearchX, Map } from 'lucide-react'
 import PageHeader from '../../components/common/PageHeader'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
@@ -98,6 +98,17 @@ function AICoordination() {
       </div>
 
       <AICoordinationFlow coordination={coordination} />
+
+      <div className="flex justify-center gap-3 pt-2 pb-4">
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={Map}
+          onClick={() => navigate(`/patient/requests/${requestId}/map`)}
+        >
+          View Nearby Donors on Map
+        </Button>
+      </div>
 
       <div className="flex justify-center pt-2 pb-4">
         <p className="text-xs text-text-muted text-center max-w-md">

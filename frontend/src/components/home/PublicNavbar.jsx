@@ -9,7 +9,7 @@ const navLinks = [
   { label: 'AI Coordination', href: '#ai-coordination' },
   { label: 'For Donors', href: '#donors' },
   { label: 'For Hospitals', href: '#hospitals' },
-  { label: 'Support', href: '#support' },
+  { label: 'Support', to: '/funding' },
 ]
 
 function PublicNavbar() {
@@ -40,14 +40,24 @@ function PublicNavbar() {
 
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={(e) => handleClick(e, link.href)}
-                className="px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-dark rounded-lg hover:bg-neutral-50 transition-colors"
-              >
-                {link.label}
-              </a>
+              link.to ? (
+                <Link
+                  key={link.label}
+                  to={link.to}
+                  className="px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-dark rounded-lg hover:bg-neutral-50 transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleClick(e, link.href)}
+                  className="px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-dark rounded-lg hover:bg-neutral-50 transition-colors"
+                >
+                  {link.label}
+                </a>
+              )
             ))}
           </div>
 
@@ -72,17 +82,28 @@ function PublicNavbar() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-white">
+          <div className="md:hidden border-t border-border bg-white">
           <div className="px-4 py-3 space-y-1">
             {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={(e) => handleClick(e, link.href)}
-                className="block px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-dark rounded-lg hover:bg-neutral-50 transition-colors"
-              >
-                {link.label}
-              </a>
+              link.to ? (
+                <Link
+                  key={link.label}
+                  to={link.to}
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-dark rounded-lg hover:bg-neutral-50 transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleClick(e, link.href)}
+                  className="block px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-dark rounded-lg hover:bg-neutral-50 transition-colors"
+                >
+                  {link.label}
+                </a>
+              )
             ))}
             <div className="pt-3 border-t border-border flex gap-2">
               <Link to="/login" className="flex-1 text-center px-4 py-2.5 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-neutral-50 transition-colors">

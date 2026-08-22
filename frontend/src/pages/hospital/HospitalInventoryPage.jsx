@@ -29,7 +29,7 @@ function HospitalInventoryPage() {
             title="Blood Inventory"
             description="Monitor and update blood unit availability across all groups."
           />
-          <Badge variant="primary">HOSPITAL</Badge>
+          <Badge variant="role-hospital">Hospital</Badge>
         </div>
       </div>
 

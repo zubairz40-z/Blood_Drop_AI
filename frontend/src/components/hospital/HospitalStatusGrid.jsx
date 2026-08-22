@@ -8,24 +8,28 @@ function HospitalStatusGrid({ activeRequests, matchedDonors, donationsToday, eme
         title="Active Requests"
         value={activeRequests}
         icon={FileText}
+        tone="info"
         description="Currently in progress"
       />
       <StatCard
         title="Matched Donors"
         value={matchedDonors}
         icon={Users}
+        tone="success"
         description="Donors matched"
       />
       <StatCard
         title="Donations Today"
         value={donationsToday}
         icon={Droplets}
+        tone="brand"
         description="Completed today"
       />
       <StatCard
         title="Emergency Cases"
         value={emergencyCases}
         icon={AlertTriangle}
+        tone="blood"
         description="Urgent & critical"
       />
     </div>

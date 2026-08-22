@@ -8,30 +8,35 @@ function AdminStatusGrid({ stats }) {
         title="Total Users"
         value={stats.totalUsers.toLocaleString()}
         icon={Users}
+        tone="brand"
         description="Registered users"
       />
       <StatCard
         title="Active Donors"
         value={stats.activeDonors.toLocaleString()}
         icon={UserCheck}
+        tone="success"
         description="Available donors"
       />
       <StatCard
         title="Blood Requests"
         value={stats.bloodRequests}
         icon={FileText}
+        tone="blood"
         description="Active requests"
       />
       <StatCard
         title="Completed Donations"
         value={stats.completedDonations.toLocaleString()}
         icon={Heart}
+        tone="warning"
         description="Successfully completed"
       />
       <StatCard
         title="Avg Response Time"
         value={`${stats.averageResponseMinutes} min`}
         icon={Clock}
+        tone="info"
         description="Average coordination"
       />
     </div>

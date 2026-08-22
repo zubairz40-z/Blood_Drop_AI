@@ -35,7 +35,7 @@ function AdminDashboard() {
               title="Admin Dashboard"
               description="Monitor BloodDrop activity, coordination health, and system-wide trends."
             />
-            <Badge variant="primary">ADMIN</Badge>
+            <Badge variant="role-admin">Admin</Badge>
           </div>
         </div>
       </div>
@@ -63,7 +63,7 @@ function AdminDashboard() {
             {demoRecentActivity.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between p-3 bg-surface-soft rounded-xl border border-border"
+                className="flex items-center justify-between p-3 bg-brand-soft/10 rounded-xl border border-brand/5 hover:border-brand/20 transition-colors"
               >
                 <p className="text-sm text-text-dark">{item.message}</p>
                 <span className="text-xs text-text-muted shrink-0 ml-4">{item.time}</span>

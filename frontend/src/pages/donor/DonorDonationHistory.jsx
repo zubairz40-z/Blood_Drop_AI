@@ -55,11 +55,11 @@ function DonorDonationHistory() {
           title="Donation History"
           description="Review your previous BloodDrop donation activity."
         />
-        <Badge variant="primary">DONOR</Badge>
+        <Badge variant="role-donor">Donor</Badge>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="flex items-center gap-4">
+        <Card className="flex items-center gap-4 hover:shadow-md transition-shadow duration-200">
           <div className="w-12 h-12 rounded-2xl bg-brand-soft flex items-center justify-center flex-shrink-0">
             <span className="text-xl font-bold text-brand">{totalDonations}</span>
           </div>
@@ -68,7 +68,7 @@ function DonorDonationHistory() {
             <p className="text-xs text-text-muted mt-0.5">All completed donations</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-4">
+        <Card className="flex items-center gap-4 hover:shadow-md transition-shadow duration-200">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
             <span className="text-sm font-bold text-emerald-600">Now</span>
           </div>

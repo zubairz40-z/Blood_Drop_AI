@@ -78,11 +78,11 @@ function DonorStatusGrid({ donor, available, onToggleAvailability }) {
           <motion.div
             key={card.title}
             variants={item}
-            className="bg-white border border-border rounded-2xl shadow-card p-5"
+            className="bg-white border border-border rounded-2xl shadow-card p-5 hover:shadow-md transition-shadow duration-200"
           >
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-text-muted truncate">
+                <p className="text-xs font-medium text-text-muted uppercase tracking-wide truncate">
                   {card.title}
                 </p>
                 <p className="text-2xl font-bold text-text-dark mt-1">{card.value}</p>

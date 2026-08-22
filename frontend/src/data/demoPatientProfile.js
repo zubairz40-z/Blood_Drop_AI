@@ -1,7 +1,7 @@
 export const demoPatientProfile = {
   name: 'Demo User',
   email: 'demo.patient@email.com',
-  phone: '+880 1712345678',
+  phone: '+880 1XXXXXXXXX',
   bloodGroup: 'O+',
   age: '34',
   location: {
@@ -12,7 +12,7 @@ export const demoPatientProfile = {
   },
   emergencyContact: {
     name: 'Sarah Rahman',
-    phone: '+880 1812345678',
+    phone: '+880 1XXXXXXXXX',
     relationship: 'Spouse',
   },
   activeRequests: 1,

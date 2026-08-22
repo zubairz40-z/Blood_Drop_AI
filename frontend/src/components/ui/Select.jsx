@@ -38,7 +38,7 @@ function Select({
           required={required}
           aria-describedby={errorId || helperId}
           aria-invalid={error ? 'true' : undefined}
-          className={`w-full px-3.5 py-2.5 text-sm bg-white border rounded-xl transition-all duration-200 appearance-none focus:outline-none focus:ring-2 focus:ring-[#F72585]/30 focus:border-[#F72585] disabled:bg-neutral-50 disabled:text-text-light disabled:cursor-not-allowed pr-10 ${
+          className={`w-full px-3.5 py-2.5 text-sm bg-white border rounded-xl transition-all duration-200 appearance-none focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand disabled:bg-neutral-50 disabled:text-text-light disabled:cursor-not-allowed pr-10 ${
             error
               ? 'border-blood focus:ring-blood/30 focus:border-blood'
               : 'border-border-dark'

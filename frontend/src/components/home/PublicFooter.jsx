@@ -9,7 +9,7 @@ const footerLinks = {
   ],
   Resources: [
     { label: 'AI Coordination', href: '#ai-coordination' },
-    { label: 'Support', href: '#support' },
+    { label: 'Support', to: '/funding' },
   ],
   Account: [
     { label: 'Login', href: '/login' },
@@ -50,7 +50,14 @@ function PublicFooter() {
               <ul className="space-y-2">
                 {links.map((link) => (
                   <li key={link.label}>
-                    {link.href.startsWith('#') ? (
+                    {link.to ? (
+                      <Link
+                        to={link.to}
+                        className="text-sm text-neutral-500 hover:text-white transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    ) : link.href.startsWith('#') ? (
                       <a
                         href={link.href}
                         onClick={(e) => handleClick(e, link.href)}

@@ -18,7 +18,7 @@ function AdminAISystem() {
             title="AI System"
             description="Monitor the status of BloodDrop's internal AI coordination agents."
           />
-          <Badge variant="primary">ADMIN</Badge>
+          <Badge variant="role-admin">Admin</Badge>
         </div>
       </div>
 

@@ -82,7 +82,7 @@ function HospitalDonations() {
             title="Donations"
             description="Track donation progress and completed donations."
           />
-          <Badge variant="primary">HOSPITAL</Badge>
+          <Badge variant="role-hospital">Hospital</Badge>
         </div>
       </div>
 

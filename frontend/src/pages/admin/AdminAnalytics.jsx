@@ -24,7 +24,7 @@ function AdminAnalytics() {
             title="Analytics"
             description="BloodDrop platform analytics and coordination insights."
           />
-          <Badge variant="primary">ADMIN</Badge>
+          <Badge variant="role-admin">Admin</Badge>
         </div>
       </div>
 

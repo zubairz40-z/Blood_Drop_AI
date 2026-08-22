@@ -62,11 +62,11 @@ function GeminiChatbot({ onClose }) {
     >
       <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-border shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-brand-soft flex items-center justify-center">
-            <Bot className="w-4.5 h-4.5 text-brand" />
+          <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center">
+            <Bot className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-text-dark">BloodDrop Assistant</p>
+            <p className="text-sm font-semibold text-brand">BloodDrop Assistant</p>
             <p className="text-[10px] text-text-muted">Demo conversation UI</p>
           </div>
         </div>

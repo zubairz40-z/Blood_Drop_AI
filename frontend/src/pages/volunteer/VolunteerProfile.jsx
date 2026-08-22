@@ -80,7 +80,7 @@ function VolunteerProfile() {
             title="Volunteer Profile"
             description="Keep your contact information up to date for coordination."
           />
-          <Badge variant="primary">VOLUNTEER</Badge>
+          <Badge variant="role-volunteer">Volunteer</Badge>
         </div>
         <button
           onClick={() => navigate('/volunteer')}

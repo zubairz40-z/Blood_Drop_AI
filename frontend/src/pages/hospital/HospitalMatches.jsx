@@ -31,7 +31,7 @@ function HospitalMatches() {
             title="Matched Donors"
             description="Donors matched to your hospital's active blood requests."
           />
-          <Badge variant="primary">HOSPITAL</Badge>
+          <Badge variant="role-hospital">Hospital</Badge>
         </div>
       </div>
 
