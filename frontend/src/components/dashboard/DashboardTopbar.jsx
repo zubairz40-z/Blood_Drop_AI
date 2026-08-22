@@ -1,13 +1,21 @@
 import { Menu } from 'lucide-react'
 import NotificationBell from '../common/NotificationBell'
 import DashboardProfileMenu from './DashboardProfileMenu'
+import { demoNotifications } from '../../data/demoNotifications'
 
-const demoNotifications = [
-  { id: 1, message: 'Your donation request was received.', time: '2 min ago', unread: true },
-  { id: 2, message: 'New blood request nearby.', time: '1 hour ago', unread: false },
-]
+const roleKeyMap = {
+  Donor: 'donor',
+  Patient: 'patient',
+  Hospital: 'hospital',
+  Volunteer: 'volunteer',
+  Admin: 'admin',
+}
 
 function DashboardTopbar({ roleLabel = 'Donor', onMenuClick, name = 'Demo User' }) {
+  const roleKey = roleKeyMap[roleLabel] || 'donor'
+  const notifications = demoNotifications[roleKey] || []
+  const unreadCount = notifications.filter((n) => !n.read).length
+
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 sm:px-6 bg-white border-b border-border lg:pl-[260px]">
       <div className="flex items-center gap-3">
@@ -22,7 +30,11 @@ function DashboardTopbar({ roleLabel = 'Donor', onMenuClick, name = 'Demo User' 
       </div>
 
       <div className="flex items-center gap-2">
-        <NotificationBell count={2} notifications={demoNotifications} />
+        <NotificationBell
+          count={unreadCount}
+          notifications={notifications}
+          role={roleLabel}
+        />
         <DashboardProfileMenu name={name} role={roleLabel} />
       </div>
     </header>

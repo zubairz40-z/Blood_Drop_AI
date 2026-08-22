@@ -27,8 +27,8 @@ export const dashboardNavigation = {
     { label: 'Dashboard', path: '/patient', icon: LayoutDashboard },
     { label: 'Create Request', path: '/patient/requests/create', icon: FilePlus },
     { label: 'My Requests', path: '/patient/requests', icon: List },
-    { label: 'Notifications', path: '/patient/notifications', icon: Bell },
     { label: 'Profile', path: '/patient/profile', icon: User },
+    { label: 'Notifications', path: '/patient/notifications', icon: Bell },
   ],
   hospital: [
     { label: 'Dashboard', path: '/hospital', icon: LayoutDashboard },
@@ -52,6 +52,7 @@ export const dashboardNavigation = {
     { label: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
     { label: 'AI System', path: '/admin/ai-system', icon: Bot },
     { label: 'Risk Alerts', path: '/admin/risk-alerts', icon: ShieldAlert },
+    { label: 'Notifications', path: '/admin/notifications', icon: Bell },
     { label: 'Funding', path: '/admin/funding', icon: DollarSign },
   ],
 }

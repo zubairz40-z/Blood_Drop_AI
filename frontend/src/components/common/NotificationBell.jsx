@@ -1,9 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bell } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Bell, CheckCheck } from 'lucide-react'
 
-function NotificationBell({ count = 0, notifications = [], className = '' }) {
+const roleRoutes = {
+  Donor: '/donor/notifications',
+  Patient: '/patient/notifications',
+  Hospital: '/hospital/notifications',
+  Volunteer: '/volunteer/notifications',
+  Admin: '/admin/notifications',
+}
+
+function NotificationBell({ count = 0, notifications = [], role = 'Donor', className = '' }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -17,6 +27,9 @@ function NotificationBell({ count = 0, notifications = [], className = '' }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
+  const latest = notifications.slice(0, 5)
+  const viewAllPath = roleRoutes[role] || '/donor/notifications'
+
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
@@ -27,7 +40,7 @@ function NotificationBell({ count = 0, notifications = [], className = '' }) {
       >
         <Bell className="w-5 h-5" />
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-brand text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[18px] h-[18px]">
+          <span className="absolute -top-0.5 -right-0.5 bg-brand text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[18px] h-[18px]">
             {count > 99 ? '99+' : count}
           </span>
         )}
@@ -35,29 +48,62 @@ function NotificationBell({ count = 0, notifications = [], className = '' }) {
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-2xl shadow-elevated overflow-hidden z-50">
-          <div className="px-4 py-3 border-b border-border">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <p className="text-sm font-semibold text-text-dark">Notifications</p>
+            {count > 0 && (
+              <button
+                onClick={() => setOpen(false)}
+                className="text-xs text-brand hover:text-brand-hover font-medium cursor-pointer"
+              >
+                <CheckCheck className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <div className="max-h-72 overflow-y-auto">
-            {notifications.length === 0 ? (
+            {latest.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <p className="text-sm text-text-muted">No notifications yet</p>
               </div>
             ) : (
-              notifications.map((n, i) => (
+              latest.map((n) => (
                 <div
-                  key={n.id || i}
-                  className={`px-4 py-3 border-b border-border last:border-b-0 hover:bg-neutral-50 transition-colors ${
-                    n.unread ? 'bg-brand-soft/30' : ''
+                  key={n.id}
+                  className={`px-4 py-3 border-b border-border last:border-b-0 hover:bg-neutral-50 transition-colors cursor-pointer ${
+                    !n.read ? 'bg-brand-soft/30' : ''
                   }`}
+                  onClick={() => {
+                    setOpen(false)
+                    if (n.actionPath) navigate(n.actionPath)
+                  }}
                 >
-                  <p className="text-sm text-text-charcoal">{n.message}</p>
-                  {n.time && (
-                    <p className="text-xs text-text-light mt-1">{n.time}</p>
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm leading-snug ${!n.read ? 'font-semibold text-text-dark' : 'text-text-charcoal'}`}>
+                        {n.title}
+                      </p>
+                      <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{n.message}</p>
+                    </div>
+                    {!n.read && (
+                      <span className="w-2 h-2 rounded-full bg-brand shrink-0 mt-1.5" />
+                    )}
+                  </div>
+                  {n.timestamp && (
+                    <p className="text-xs text-text-light mt-1">{n.timestamp}</p>
                   )}
                 </div>
               ))
             )}
+          </div>
+          <div className="px-4 py-2.5 border-t border-border bg-surface-soft">
+            <button
+              onClick={() => {
+                setOpen(false)
+                navigate(viewAllPath)
+              }}
+              className="w-full text-center text-xs font-medium text-brand hover:text-brand-hover transition-colors cursor-pointer"
+            >
+              View All Notifications
+            </button>
           </div>
         </div>
       )}

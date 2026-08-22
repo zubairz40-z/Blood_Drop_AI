@@ -5,11 +5,34 @@ import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
 import ForgotPassword from '../pages/auth/ForgotPassword'
 import DashboardLayout from '../layouts/DashboardLayout'
-import DashboardPlaceholder from '../components/dashboard/DashboardPlaceholder'
 import DonorDashboard from '../pages/donor/DonorDashboard'
 import DonorProfile from '../pages/donor/DonorProfile'
 import DonorEmergencyRequests from '../pages/donor/DonorEmergencyRequests'
 import DonorEmergencyRequestDetails from '../pages/donor/DonorEmergencyRequestDetails'
+import DonorDonationHistory from '../pages/donor/DonorDonationHistory'
+import PatientDashboard from '../pages/patient/PatientDashboard'
+import CreateBloodRequest from '../pages/patient/CreateBloodRequest'
+import PatientRequests from '../pages/patient/PatientRequests'
+import RequestTracking from '../pages/patient/RequestTracking'
+import AICoordination from '../pages/patient/AICoordination'
+import PatientProfile from '../pages/patient/PatientProfile'
+import HospitalDashboard from '../pages/hospital/HospitalDashboard'
+import HospitalRequests from '../pages/hospital/HospitalRequests'
+import HospitalMatches from '../pages/hospital/HospitalMatches'
+import HospitalInventoryPage from '../pages/hospital/HospitalInventoryPage'
+import HospitalDonations from '../pages/hospital/HospitalDonations'
+import VolunteerDashboard from '../pages/volunteer/VolunteerDashboard'
+import VolunteerTasks from '../pages/volunteer/VolunteerTasks'
+import VolunteerAssistanceHistory from '../pages/volunteer/VolunteerAssistanceHistory'
+import VolunteerProfile from '../pages/volunteer/VolunteerProfile'
+import AdminDashboard from '../pages/admin/AdminDashboard'
+import AdminUsers from '../pages/admin/AdminUsers'
+import AdminBloodRequests from '../pages/admin/AdminBloodRequests'
+import AdminAnalytics from '../pages/admin/AdminAnalytics'
+import AdminAISystem from '../pages/admin/AdminAISystem'
+import AdminRiskAlerts from '../pages/admin/AdminRiskAlerts'
+import AdminFunding from '../pages/admin/AdminFunding'
+import NotificationsPage from '../pages/notifications/NotificationsPage'
 
 function AppRoutes() {
   return (
@@ -25,18 +48,46 @@ function AppRoutes() {
         <Route path="profile" element={<DonorProfile />} />
         <Route path="requests" element={<DonorEmergencyRequests />} />
         <Route path="requests/:requestId" element={<DonorEmergencyRequestDetails />} />
+        <Route path="history" element={<DonorDonationHistory />} />
+        <Route path="notifications" element={<NotificationsPage />} />
       </Route>
+
       <Route path="/patient" element={<DashboardLayout role="patient" />}>
-        <Route index element={<DashboardPlaceholder title="Patient Dashboard" description="Patient dashboard content will be added in a later step." role="Patient" />} />
+        <Route index element={<PatientDashboard />} />
+        <Route path="requests/create" element={<CreateBloodRequest />} />
+        <Route path="requests" element={<PatientRequests />} />
+        <Route path="requests/:requestId/tracking" element={<RequestTracking />} />
+        <Route path="requests/:requestId/coordination" element={<AICoordination />} />
+        <Route path="profile" element={<PatientProfile />} />
+        <Route path="notifications" element={<NotificationsPage />} />
       </Route>
+
       <Route path="/hospital" element={<DashboardLayout role="hospital" />}>
-        <Route index element={<DashboardPlaceholder title="Hospital Dashboard" description="Hospital dashboard content will be added in a later step." role="Hospital" />} />
+        <Route index element={<HospitalDashboard />} />
+        <Route path="requests" element={<HospitalRequests />} />
+        <Route path="matches" element={<HospitalMatches />} />
+        <Route path="inventory" element={<HospitalInventoryPage />} />
+        <Route path="donations" element={<HospitalDonations />} />
+        <Route path="notifications" element={<NotificationsPage />} />
       </Route>
+
       <Route path="/volunteer" element={<DashboardLayout role="volunteer" />}>
-        <Route index element={<DashboardPlaceholder title="Volunteer Dashboard" description="Volunteer dashboard content will be added in a later step." role="Volunteer" />} />
+        <Route index element={<VolunteerDashboard />} />
+        <Route path="tasks" element={<VolunteerTasks />} />
+        <Route path="history" element={<VolunteerAssistanceHistory />} />
+        <Route path="profile" element={<VolunteerProfile />} />
+        <Route path="notifications" element={<NotificationsPage />} />
       </Route>
+
       <Route path="/admin" element={<DashboardLayout role="admin" />}>
-        <Route index element={<DashboardPlaceholder title="Admin Dashboard" description="Admin dashboard content will be added in a later step." role="Admin" />} />
+        <Route index element={<AdminDashboard />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="requests" element={<AdminBloodRequests />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="ai-system" element={<AdminAISystem />} />
+        <Route path="risk-alerts" element={<AdminRiskAlerts />} />
+        <Route path="funding" element={<AdminFunding />} />
+        <Route path="notifications" element={<NotificationsPage />} />
       </Route>
     </Routes>
   )
