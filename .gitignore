@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.local
+dist/
+build/
+__pycache__/
+venv/
+*.log
+.DS_Store
+
+# Firebase Admin credentials — NEVER commit
+serviceAccountKey.json
+*firebase-adminsdk*.json

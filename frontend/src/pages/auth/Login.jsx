@@ -6,8 +6,15 @@ import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import Alert from '../../components/ui/Alert'
 import PasswordField from '../../components/auth/PasswordField'
+import { useNavigate } from 'react-router-dom'
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { auth } from '../../config/firebase'
+import api from '../../api/client'
+import { useAuth } from '../../context/AuthContext'
 
 function Login() {
+  const navigate = useNavigate()
+  const { setProfile } = useAuth()
   const [form, setForm] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -26,7 +33,15 @@ function Login() {
     return errs
   }
 
-  const handleSubmit = (e) => {
+    const DASHBOARD_BY_ROLE = {
+    patient: '/patient',
+    donor: '/donor',
+    hospital: '/hospital',
+    volunteer: '/volunteer',
+    admin: '/admin',
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setInfo('')
     const errs = validate()
@@ -36,10 +51,19 @@ function Login() {
     }
     setErrors({})
     setLoading(true)
-    setTimeout(() => {
+
+    try {
+      await signInWithEmailAndPassword(auth, form.email, form.password)
+      const { data } = await api.post('/api/auth/login')
+      setProfile(data.user)
+      navigate(DASHBOARD_BY_ROLE[data.user.role] || '/', { replace: true })
+    } catch (err) {
+      if (auth.currentUser && !err.code) {
+        await signOut(auth)
+      }
+      setInfo(friendlyMessage(err))
       setLoading(false)
-      setInfo('Authentication will be connected to Firebase in a later integration step.')
-    }, 1200)
+    }
   }
 
   const handleChange = (field) => (e) => {
@@ -106,6 +130,23 @@ function Login() {
       </div>
     </AuthLayout>
   )
+}
+
+function friendlyMessage(err) {
+  switch (err.code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Wrong email or password.'
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.'
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Try again in a few minutes.'
+    case 'auth/operation-not-allowed':
+      return 'Email/Password sign-in is not enabled in Firebase.'
+    default:
+      return err.response?.data?.message || err.message || 'Something went wrong.'
+  }
 }
 
 export default Login

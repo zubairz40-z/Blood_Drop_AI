@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import AppRoutes from './routes/AppRoutes'
 import ChatbotLauncher from './components/chatbot/ChatbotLauncher'
 import GeminiChatbot from './components/chatbot/GeminiChatbot'
+import { AuthProvider } from './context/AuthContext'
 
 const hideChatbotPaths = ['/login', '/register', '/forgot-password', '/design-system']
 
@@ -11,8 +12,8 @@ function App() {
   const location = useLocation()
   const hideChatbot = hideChatbotPaths.some((p) => location.pathname.startsWith(p))
 
-  return (
-    <>
+    return (
+    <AuthProvider>
       <AppRoutes />
       {!hideChatbot && (
         <>
@@ -23,7 +24,7 @@ function App() {
           {chatOpen && <GeminiChatbot onClose={() => setChatOpen(false)} />}
         </>
       )}
-    </>
+    </AuthProvider>
   )
 }
 
