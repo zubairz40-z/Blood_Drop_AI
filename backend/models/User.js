@@ -15,7 +15,15 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
     },
-    isBanned: { type: Boolean, default: false },
+    accountStatus: {
+      type: String,
+      enum: ["active", "pending", "rejected", "suspended"],
+      default: "active",
+      index: true,
+    },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    approvedAt: { type: Date },
+    rejectionReason: { type: String, trim: true },
     lastLoginAt: { type: Date },
   },
   { timestamps: true }

@@ -3,15 +3,13 @@ require("dotenv").config();
 const API_KEY = process.env.FIREBASE_WEB_API_KEY;
 const SERVER = `http://localhost:${process.env.PORT || 5000}`;
 
-const TEST_EMAIL = "donor@test.com";
-const TEST_PASSWORD = "Test1234";
 
-const TEST_PROFILE = {
-  name: "Test Donor",
-  role: "donor",
-  phone: "01700000000",
-  bloodGroup: "O+",
-};
+
+const TEST_EMAIL = "hospital@test.com";
+const TEST_PASSWORD = "Test1234";
+const TEST_PROFILE = { name: "Test Hospital", role: "hospital", phone: "01700000002", bloodGroup: "O+" };
+
+
 
 // Talk to Firebase directly, the same way the browser SDK does
 async function firebaseAuth(action) {
