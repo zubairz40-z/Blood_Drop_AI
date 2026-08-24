@@ -5,7 +5,7 @@ const User = require("../models/User");
  * Looks up the caller's profile and checks their role.
  * Usage: router.get("/x", verifyFirebaseToken, requireRole("admin"), handler)
  */
-function requireRole(...allowedRoles) {
+function authorizeRoles(...allowedRoles) {
   return async (req, res, next) => {
     try {
       const user = await User.findOne({ firebaseUid: req.firebaseUser.uid });
@@ -31,4 +31,4 @@ function requireRole(...allowedRoles) {
   };
 }
 
-module.exports = requireRole;
+module.exports = authorizeRoles;

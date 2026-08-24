@@ -2,10 +2,10 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
-const requireRole = require("../middleware/requireRole");
+const authorizeRoles = require("../middleware/authorizeRoles");
 
 // Every route in this file requires an active admin
-router.use(verifyFirebaseToken, requireRole("admin"));
+router.use(verifyFirebaseToken, authorizeRoles("admin"));
 
 /** GET /api/admin/pending — accounts awaiting approval */
 router.get("/pending", async (req, res) => {
