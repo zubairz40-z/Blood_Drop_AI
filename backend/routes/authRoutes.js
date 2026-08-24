@@ -83,6 +83,12 @@ router.get("/me", verifyFirebaseToken, async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "Profile not found" });
     }
+    if (user.accountStatus && user.accountStatus !== "active") {
+      return res.status(403).json({
+        success: false,
+        message: "This account is not active.",
+      });
+    }
     res.json({ success: true, user });
   } catch (err) {
     console.error("Profile fetch error:", err);
