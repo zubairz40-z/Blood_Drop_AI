@@ -11,6 +11,8 @@ import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { auth } from '../../config/firebase'
 import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { signInWithGoogle, googleFriendlyMessage } from '../../services/googleAuth'
+import GoogleIcon from '../../components/auth/GoogleIcon'
 
 function Login() {
   const navigate = useNavigate()
@@ -18,6 +20,7 @@ function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [info, setInfo] = useState('')
 
   const validate = () => {
@@ -71,6 +74,38 @@ function Login() {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }))
   }
 
+  const handleGoogleLogin = async () => {
+    setInfo('')
+    setErrors({})
+    setGoogleLoading(true)
+
+    try {
+      await signInWithGoogle()
+      const { data } = await api.post('/api/auth/login')
+      if (data.user.accountStatus === 'pending') {
+        await signOut(auth)
+        setInfo('Your account is awaiting admin approval. Please check back later.')
+        setGoogleLoading(false)
+        return
+      }
+      if (data.user.accountStatus === 'rejected' || data.user.accountStatus === 'suspended') {
+        await signOut(auth)
+        setInfo('This account is not active. Please contact support.')
+        setGoogleLoading(false)
+        return
+      }
+      setProfile(data.user)
+      navigate(DASHBOARD_BY_ROLE[data.user.role] || '/', { replace: true })
+    } catch (err) {
+      const msg = googleFriendlyMessage(err)
+      if (msg !== null) setInfo(msg)
+      if (auth.currentUser && err.code) {
+        await signOut(auth)
+      }
+      setGoogleLoading(false)
+    }
+  }
+
   return (
     <AuthLayout>
       <div>
@@ -120,6 +155,29 @@ function Login() {
             Sign In
           </Button>
         </form>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border-dark" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-3 bg-bg text-text-muted">OR</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={googleLoading}
+          className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-2.5 text-sm font-medium rounded-full border border-border-dark bg-white hover:bg-neutral-50 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        >
+          {googleLoading ? (
+            <span className="w-4 h-4 border-2 border-text-light border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <GoogleIcon className="w-5 h-5" />
+          )}
+          Continue with Google
+        </button>
 
         <p className="text-sm text-text-muted text-center mt-6">
           Don&apos;t have an account?{' '}

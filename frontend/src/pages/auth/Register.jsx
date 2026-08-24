@@ -1,11 +1,16 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Mail, User, Phone, Heart, UserCheck, Building2, HandHelping } from 'lucide-react'
+import { createUserWithEmailAndPassword, signOut } from 'firebase/auth'
+import { auth } from '../../config/firebase'
+import api from '../../api/client'
 import AuthLayout from '../../components/auth/AuthLayout'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import Alert from '../../components/ui/Alert'
 import PasswordField from '../../components/auth/PasswordField'
+import { signInWithGoogle, googleFriendlyMessage } from '../../services/googleAuth'
+import GoogleIcon from '../../components/auth/GoogleIcon'
 
 const roles = [
   { value: 'Donor', label: 'Donor', description: 'Help respond to blood donation needs.', icon: Heart },
@@ -15,9 +20,11 @@ const roles = [
 ]
 
 function Register() {
+  const navigate = useNavigate()
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [info, setInfo] = useState('')
 
   const validate = () => {
@@ -42,7 +49,7 @@ function Register() {
     return errs
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setInfo('')
     const errs = validate()
@@ -52,15 +59,70 @@ function Register() {
     }
     setErrors({})
     setLoading(true)
-    setTimeout(() => {
+
+    try {
+      await createUserWithEmailAndPassword(auth, form.email, form.password)
+      await api.post('/api/auth/register', {
+        name: form.name,
+        role: form.role.toLowerCase(),
+        phone: form.phone,
+      })
+      await signOut(auth)
+      navigate('/login', { replace: true })
+    } catch (err) {
+      if (auth.currentUser) {
+        await signOut(auth)
+      }
+      setInfo(friendlyMessage(err))
       setLoading(false)
-      setInfo('Registration UI is ready. Account creation will be connected to Firebase later.')
-    }, 1200)
+    }
   }
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }))
+  }
+
+  const handleGoogleRegister = async () => {
+    setInfo('')
+    if (!form.role) {
+      setErrors((prev) => ({ ...prev, role: 'Please select a role before continuing with Google.' }))
+      return
+    }
+    setErrors({})
+    setGoogleLoading(true)
+
+    try {
+      const { user } = await signInWithGoogle()
+      const name = user.displayName || form.name || ''
+      const phone = form.phone || ''
+      const { data } = await api.post('/api/auth/register', {
+        name,
+        role: form.role.toLowerCase(),
+        phone,
+      })
+      if (data.user.accountStatus === 'pending') {
+        await signOut(auth)
+        setInfo('Registration received. Your hospital account is awaiting admin approval.')
+        setGoogleLoading(false)
+        return
+      }
+      if (data.user.accountStatus === 'rejected' || data.user.accountStatus === 'suspended') {
+        await signOut(auth)
+        setInfo('This account is not active. Please contact support.')
+        setGoogleLoading(false)
+        return
+      }
+      await signOut(auth)
+      navigate('/login', { replace: true })
+    } catch (err) {
+      const msg = googleFriendlyMessage(err)
+      if (msg !== null) setInfo(msg)
+      if (auth.currentUser) {
+        await signOut(auth)
+      }
+      setGoogleLoading(false)
+    }
   }
 
   return (
@@ -160,6 +222,29 @@ function Register() {
           </Button>
         </form>
 
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border-dark" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-3 bg-bg text-text-muted">OR</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleRegister}
+          disabled={googleLoading}
+          className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-2.5 text-sm font-medium rounded-full border border-border-dark bg-white hover:bg-neutral-50 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        >
+          {googleLoading ? (
+            <span className="w-4 h-4 border-2 border-text-light border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <GoogleIcon className="w-5 h-5" />
+          )}
+          Continue with Google
+        </button>
+
         <p className="text-sm text-text-muted text-center mt-6">
           Already have an account?{' '}
           <Link to="/login" className="font-medium text-brand hover:text-brand-hover transition-colors">
@@ -169,6 +254,21 @@ function Register() {
       </div>
     </AuthLayout>
   )
+}
+
+function friendlyMessage(err) {
+  switch (err.code) {
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists.'
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.'
+    case 'auth/operation-not-allowed':
+      return 'Email/Password sign-up is not enabled in Firebase.'
+    case 'auth/weak-password':
+      return 'Password is too weak. Use at least 6 characters.'
+    default:
+      return err.response?.data?.message || err.message || 'Something went wrong.'
+  }
 }
 
 export default Register

@@ -10,5 +10,12 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-const app = initializeApp(firebaseConfig)
-export const auth = getAuth(app)
+let auth = null
+try {
+  const app = initializeApp(firebaseConfig)
+  auth = getAuth(app)
+} catch {
+  // Firebase not configured — auth features will be unavailable
+}
+
+export { auth }
