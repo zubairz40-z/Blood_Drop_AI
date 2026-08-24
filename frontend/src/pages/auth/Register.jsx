@@ -11,6 +11,8 @@ import { createUserWithEmailAndPassword, signOut } from 'firebase/auth'
 import { auth } from '../../config/firebase'
 import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 
 const roles = [
   { value: 'Donor', label: 'Donor', description: 'Help respond to blood donation needs.', icon: Heart },
@@ -26,6 +28,20 @@ function Register() {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [info, setInfo] = useState('')
+  const location = useLocation()
+  const googleInfo = location.state?.googleInfo || null
+
+  useEffect(() => {
+    if (googleInfo) {
+      setForm((prev) => ({
+        ...prev,
+        name: googleInfo.name,
+        email: googleInfo.email,
+        phone: googleInfo.phone,
+        password: 'google-oauth',
+      }))
+    }
+  }, [googleInfo])
 
   const validate = () => {
     const errs = {}
@@ -40,10 +56,12 @@ function Register() {
     } else if (form.phone.replace(/\D/g, '').length < 7) {
       errs.phone = 'Please enter a valid phone number'
     }
-    if (!form.password) {
-      errs.password = 'Password is required'
-    } else if (form.password.length < 6) {
-      errs.password = 'Password must be at least 6 characters'
+    if (!googleInfo) {
+      if (!form.password) {
+        errs.password = 'Password is required'
+      } else if (form.password.length < 6) {
+        errs.password = 'Password must be at least 6 characters'
+      }
     }
     if (!form.role) errs.role = 'Please select a role'
     return errs
@@ -70,7 +88,9 @@ function Register() {
     const role = form.role.toLowerCase()
 
     try {
-      await createUserWithEmailAndPassword(auth, form.email, form.password)
+      if (!googleInfo) {
+        await createUserWithEmailAndPassword(auth, form.email, form.password)
+      }
 
       const { data } = await api.post('/api/auth/register', {
         name: form.name,
@@ -153,15 +173,17 @@ function Register() {
             autoComplete="tel"
           />
 
-          <PasswordField
-            name="password"
-            value={form.password}
-            onChange={handleChange('password')}
-            placeholder="At least 6 characters"
-            error={errors.password}
-            required
-            autoComplete="new-password"
-          />
+          {!googleInfo && (
+            <PasswordField
+              name="password"
+              value={form.password}
+              onChange={handleChange('password')}
+              placeholder="At least 6 characters"
+              error={errors.password}
+              required
+              autoComplete="new-password"
+            />
+          )}
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-text-charcoal">
