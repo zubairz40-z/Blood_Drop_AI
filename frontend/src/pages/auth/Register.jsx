@@ -6,6 +6,11 @@ import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import Alert from '../../components/ui/Alert'
 import PasswordField from '../../components/auth/PasswordField'
+import { useNavigate } from 'react-router-dom'
+import { createUserWithEmailAndPassword, signOut } from 'firebase/auth'
+import { auth } from '../../config/firebase'
+import api from '../../api/client'
+import { useAuth } from '../../context/AuthContext'
 
 const roles = [
   { value: 'Donor', label: 'Donor', description: 'Help respond to blood donation needs.', icon: Heart },
@@ -15,6 +20,8 @@ const roles = [
 ]
 
 function Register() {
+  const navigate = useNavigate()
+  const { setProfile } = useAuth()
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -42,7 +49,14 @@ function Register() {
     return errs
   }
 
-  const handleSubmit = (e) => {
+    const DASHBOARD_BY_ROLE = {
+    patient: '/patient',
+    donor: '/donor',
+    hospital: '/hospital',
+    volunteer: '/volunteer',
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setInfo('')
     const errs = validate()
@@ -52,10 +66,35 @@ function Register() {
     }
     setErrors({})
     setLoading(true)
-    setTimeout(() => {
+
+    const role = form.role.toLowerCase()
+
+    try {
+      await createUserWithEmailAndPassword(auth, form.email, form.password)
+
+      const { data } = await api.post('/api/auth/register', {
+        name: form.name,
+        role,
+        phone: form.phone,
+      })
+
+      // Hospitals need admin approval before they can sign in
+      if (data.user.accountStatus === 'pending') {
+        await signOut(auth)
+        setLoading(false)
+        setInfo('Account created. A hospital account needs admin approval before you can sign in.')
+        return
+      }
+
+      setProfile(data.user)
+      navigate(DASHBOARD_BY_ROLE[role] || '/', { replace: true })
+    } catch (err) {
+      if (auth.currentUser && !err.code) {
+        await signOut(auth)
+      }
+      setInfo(registerErrorMessage(err))
       setLoading(false)
-      setInfo('Registration UI is ready. Account creation will be connected to Firebase later.')
-    }, 1200)
+    }
   }
 
   const handleChange = (field) => (e) => {
@@ -169,6 +208,21 @@ function Register() {
       </div>
     </AuthLayout>
   )
+}
+
+function registerErrorMessage(err) {
+  switch (err.code) {
+    case 'auth/email-already-in-use':
+      return 'An account with that email already exists.'
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.'
+    case 'auth/weak-password':
+      return 'Password is too weak. Use at least 6 characters.'
+    case 'auth/operation-not-allowed':
+      return 'Email/Password sign-up is not enabled in Firebase.'
+    default:
+      return err.response?.data?.message || err.message || 'Could not create your account.'
+  }
 }
 
 export default Register
