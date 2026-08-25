@@ -28,14 +28,14 @@ function PersonalInformationForm({ form, errors, onChange }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input
-          label="Age"
-          name="age"
-          type="number"
-          value={form.age}
+          label="Date of Birth"
+          name="dateOfBirth"
+          type="date"
+          value={form.dateOfBirth}
           onChange={onChange}
-          placeholder="25"
           required
-          error={errors.age}
+          error={errors.dateOfBirth}
+          helperText={form.age != null && form.age >= 0 ? `Age: ${form.age}` : undefined}
         />
 
         <Input

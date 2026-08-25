@@ -149,7 +149,7 @@ export function donorProfileFromApi(profile, user = {}) {
     age: calculateAge(profile?.dateOfBirth),
     weight: profile?.weightKg != null ? String(profile.weightKg) : '',
     bloodGroup: profile?.bloodGroup || '',
-    donationTypes: profile?.donationTypes || [],
+    donationTypes: (profile?.donationTypes || []).map(toComponentLabel),
     availability: profile?.isAvailable ?? true,
     location: fromGeoJson(profile?.location),
   }
