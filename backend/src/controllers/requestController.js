@@ -3,9 +3,11 @@ const User = require("../models/User");
 const { COMPONENT_CODES } = require("../utils/donationRules");
 const { STATUS, assertTransition, isTerminal } = require("../utils/requestStatus");
 
-/** POST /api/requests — patients only */
+/** POST /api/requests — patients file their own; hospitals file emergencies */
 async function createRequest(req, res, next) {
   try {
+    const isHospital = req.currentUser.role === "hospital";
+
     const {
       hospital,
       bloodGroup,
@@ -15,27 +17,14 @@ async function createRequest(req, res, next) {
       neededBy,
       location,
       patientNote,
+      patientName,
+      patientPhone,
     } = req.body;
 
     if (!COMPONENT_CODES.includes(component)) {
       return res.status(400).json({
         success: false,
         message: `Unknown component: ${component}`,
-      });
-    }
-
-    // The named hospital must exist, be a hospital, and be approved
-    const hospitalUser = await User.findById(hospital);
-    if (!hospitalUser || hospitalUser.role !== "hospital") {
-      return res.status(400).json({
-        success: false,
-        message: "Select a valid hospital.",
-      });
-    }
-    if (hospitalUser.accountStatus && hospitalUser.accountStatus !== "active") {
-      return res.status(400).json({
-        success: false,
-        message: "That hospital is not currently approved.",
       });
     }
 
@@ -46,20 +35,64 @@ async function createRequest(req, res, next) {
       });
     }
 
-    // The collection point is the hospital, so prefer its coordinates.
-    // Falls back to whatever the patient supplied.
+    let hospitalId;
+    let patientId = null;
+    let status;
+
+    if (isHospital) {
+      // A hospital files against itself — it IS the verifying party,
+      // so the request skips verification and is attributed to the staff account.
+      hospitalId = req.currentUser._id;
+      status = STATUS.VERIFIED;
+
+      if (!patientName?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Provide the patient's name, or a description if unidentified.",
+        });
+      }
+
+      if (patientPhone?.trim()) {
+        const existing = await User.findOne({
+          phone: patientPhone.trim(),
+          role: "patient",
+        });
+        if (existing) patientId = existing._id;
+      }
+    } else {
+      const hospitalUser = await User.findById(hospital);
+      if (!hospitalUser || hospitalUser.role !== "hospital") {
+        return res.status(400).json({ success: false, message: "Select a valid hospital." });
+      }
+      if (hospitalUser.accountStatus && hospitalUser.accountStatus !== "active") {
+        return res.status(400).json({
+          success: false,
+          message: "That hospital is not currently approved.",
+        });
+      }
+
+      hospitalId = hospitalUser._id;
+      patientId = req.currentUser._id;
+      status = STATUS.PENDING_VERIFICATION;
+    }
+
+    const hospitalDoc = isHospital ? req.currentUser : await User.findById(hospitalId);
     let requestLocation = location;
-    if (hospitalUser.location?.coordinates?.length === 2) {
+    if (hospitalDoc.location?.coordinates?.length === 2) {
       requestLocation = {
         type: "Point",
-        coordinates: hospitalUser.location.coordinates,
-        address: hospitalUser.address || location?.address || "",
+        coordinates: hospitalDoc.location.coordinates,
+        address: hospitalDoc.address || location?.address || "",
       };
     }
 
     const request = await BloodRequest.create({
-      patient: req.currentUser._id,
-      hospital,
+      patient: patientId,
+      hospital: hospitalId,
+      createdBy: req.currentUser._id,
+      createdByHospital: isHospital,
+      patientName: isHospital ? patientName : undefined,
+      patientPhone: isHospital ? patientPhone : undefined,
       bloodGroup,
       component,
       unitsRequired,
@@ -67,13 +100,13 @@ async function createRequest(req, res, next) {
       neededBy,
       location: requestLocation,
       patientNote,
-      status: STATUS.PENDING_VERIFICATION,
+      status,
       statusHistory: [
         {
           from: null,
-          to: STATUS.PENDING_VERIFICATION,
+          to: status,
           changedBy: req.currentUser._id,
-          note: "Request created",
+          note: isHospital ? "Emergency request filed by hospital" : "Request created",
         },
       ],
     });
@@ -86,7 +119,6 @@ async function createRequest(req, res, next) {
     next(err);
   }
 }
-
 /** GET /api/requests/my — requests the caller owns or is responsible for */
 async function getMyRequests(req, res, next) {
   try {
@@ -118,7 +150,7 @@ async function getRequestById(req, res, next) {
     }
 
     const { role, _id } = req.currentUser;
-    const isOwner = request.patient._id.equals(_id);
+    const isOwner = request.patient?._id?.equals(_id) || false
     const isHospital = request.hospital._id.equals(_id);
     const isAdmin = role === "admin";
 
@@ -149,7 +181,10 @@ async function updateRequest(req, res, next) {
       return res.status(404).json({ success: false, message: "Request not found" });
     }
 
-    if (!request.patient.equals(req.currentUser._id)) {
+    const isPatient = request.patient?.equals(req.currentUser._id);
+    const isCreator = request.createdBy?.equals(req.currentUser._id);
+
+    if (!isPatient && !isCreator) {
       return res.status(403).json({
         success: false,
         message: "You can only edit your own requests.",
@@ -203,7 +238,10 @@ async function cancelRequest(req, res, next) {
       return res.status(404).json({ success: false, message: "Request not found" });
     }
 
-    if (!request.patient.equals(req.currentUser._id)) {
+    const isPatient = request.patient?.equals(req.currentUser._id);
+    const isCreator = request.createdBy?.equals(req.currentUser._id);
+
+    if (!isPatient && !isCreator) {
       return res.status(403).json({
         success: false,
         message: "You can only cancel your own requests.",

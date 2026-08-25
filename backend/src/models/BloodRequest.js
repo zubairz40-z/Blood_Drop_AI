@@ -6,12 +6,27 @@ const URGENCY = ["EMERGENCY", "URGENT", "ROUTINE"];
 
 const bloodRequestSchema = new mongoose.Schema(
   {
+    // Optional — a hospital may file for an unidentified emergency patient
     patient: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+    },
+
+    // True when a hospital filed this itself rather than a patient
+    createdByHospital: { type: Boolean, default: false, index: true },
+
+    // The account that created the request — always set, for audit
+    createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
     },
+
+    // Free-text identification when there's no patient account
+    patientName: { type: String, trim: true },
+    patientPhone: { type: String, trim: true },
 
     // The hospital expected to verify and receive the donation
     hospital: {

@@ -17,11 +17,11 @@ router.use(verifyFirebaseToken);
 // IMPORTANT: /my must come before /:id, or Express reads "my" as an id
 router.get("/my", authorizeRoles("patient", "hospital", "admin"), getMyRequests);
 
-router.post("/", authorizeRoles("patient"), createRequest);
+router.post("/", authorizeRoles("patient", "hospital"), createRequest);
 
 router.get("/:id", authorizeRoles("patient", "hospital", "admin"), getRequestById);
-router.patch("/:id", authorizeRoles("patient"), updateRequest);
-router.post("/:id/cancel", authorizeRoles("patient"), cancelRequest);
+router.patch("/:id", authorizeRoles("patient", "hospital"), updateRequest);
+router.post("/:id/cancel", authorizeRoles("patient", "hospital"), cancelRequest);
 
 router.post("/:id/verify", authorizeRoles("hospital"), verifyRequest);
 router.post("/:id/reject", authorizeRoles("hospital"), rejectRequest);
