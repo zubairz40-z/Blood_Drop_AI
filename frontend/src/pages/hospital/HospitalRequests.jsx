@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Check, X, Inbox } from 'lucide-react'
+import { Check, X, Inbox, Plus } from 'lucide-react'
 import PageHeader from '../../components/common/PageHeader'
 import Card from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
@@ -10,8 +10,9 @@ import Alert from '../../components/ui/Alert'
 import Modal from '../../components/ui/Modal'
 import EmptyState from '../../components/ui/EmptyState'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
-import { fetchMyRequests, verifyBloodRequest, rejectBloodRequest } from '../../api/requestApi'
-import { bloodRequestFromApi } from '../../api/mappers'
+import HospitalCreateRequestModal from '../../components/hospital/HospitalCreateRequestModal'
+import { fetchMyRequests, verifyBloodRequest, rejectBloodRequest, createBloodRequest } from '../../api/requestApi'
+import { bloodRequestFromApi, toComponentCode, toUrgencyCode } from '../../api/mappers'
 
 const TERMINAL_STATUSES = ['FULFILLED', 'CANCELLED', 'REJECTED', 'EXPIRED']
 
@@ -26,7 +27,11 @@ function RequestRow({ request, children }) {
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold text-text-dark">{request.shortId}</p>
             <Badge variant={request.statusVariant}>{request.statusLabel}</Badge>
+            {request.createdByHospital && <Badge variant="neutral">Filed by us</Badge>}
           </div>
+          {request.patientName && (
+            <p className="text-xs text-text-dark mt-0.5 font-medium">{request.patientName}</p>
+          )}
           <p className="text-xs text-text-muted mt-0.5">
             {request.componentLabel} · {request.unitsRequired}{' '}
             {request.unitsRequired === 1 ? 'unit' : 'units'} · {request.urgencyLabel}
@@ -57,6 +62,10 @@ function HospitalRequests() {
   const [actingOn, setActingOn] = useState(null)
   const [rejectTarget, setRejectTarget] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
+
+  const [createOpen, setCreateOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState(null)
 
   useEffect(() => {
     load()
@@ -111,6 +120,30 @@ function HospitalRequests() {
     }
   }
 
+  async function handleCreateRequest(form) {
+    setCreating(true)
+    setCreateError(null)
+    try {
+      const saved = await createBloodRequest({
+        patientName: form.patientName,
+        patientPhone: form.patientPhone || undefined,
+        bloodGroup: form.bloodGroup,
+        component: toComponentCode(form.donationType),
+        unitsRequired: form.units,
+        urgency: toUrgencyCode(form.emergencyLevel),
+        neededBy: form.neededBy,
+        patientNote: form.note || undefined,
+      })
+      setRequests((prev) => [bloodRequestFromApi(saved), ...prev])
+      setCreateOpen(false)
+      setNotice('Emergency request filed.')
+    } catch (err) {
+      setCreateError(err.response?.data?.message || 'Could not file the request.')
+    } finally {
+      setCreating(false)
+    }
+  }
+
   const pending = requests.filter((r) => r.status === 'PENDING_VERIFICATION')
   const active = requests.filter(
     (r) => r.status !== 'PENDING_VERIFICATION' && !TERMINAL_STATUSES.includes(r.status)
@@ -136,10 +169,13 @@ function HospitalRequests() {
         <div className="flex items-center gap-2">
           <PageHeader
             title="Blood Requests"
-            description="Verify incoming patient requests and track their progress."
+            description="Verify incoming patient requests and file emergency requests."
           />
           <Badge variant="role-hospital">Hospital</Badge>
         </div>
+        <Button icon={Plus} onClick={() => setCreateOpen(true)}>
+          File Emergency Request
+        </Button>
       </div>
 
       {error && <Alert variant="error" onDismiss={() => setError(null)}>{error}</Alert>}
@@ -210,6 +246,14 @@ function HospitalRequests() {
           </div>
         )}
       </Card>
+
+      <HospitalCreateRequestModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreateRequest={handleCreateRequest}
+        submitting={creating}
+        error={createError}
+      />
 
       <Modal
         open={rejectTarget !== null}

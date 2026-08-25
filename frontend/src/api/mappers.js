@@ -279,6 +279,8 @@ export function bloodRequestFromApi(request) {
     rejectionReason: request.rejectionReason || null,
     cancellationReason: request.cancellationReason || null,
     statusHistory: request.statusHistory || [],
+    createdByHospital: request.createdByHospital || false,
+    patientName: request.patientName || null,
   }
 }
 
