@@ -36,6 +36,16 @@ function BloodRequirementForm({ form, errors, onChange }) {
         error={errors.units}
         helperText="Minimum 1 unit"
       />
+      <Input
+        label="Needed By"
+        name="neededBy"
+        type="datetime-local"
+        value={form.neededBy}
+        onChange={onChange}
+        required
+        error={errors.neededBy}
+        helperText="When the blood is needed"
+      />
     </div>
   )
 }

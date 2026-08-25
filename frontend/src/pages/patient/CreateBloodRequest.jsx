@@ -1,19 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Search } from 'lucide-react'
 import PageHeader from '../../components/common/PageHeader'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import Alert from '../../components/ui/Alert'
 import BloodRequirementForm from '../../components/patient/BloodRequirementForm'
 import RequestLocationForm from '../../components/patient/RequestLocationForm'
 import EmergencyLevelSelector from '../../components/patient/EmergencyLevelSelector'
 import RequestCreatedState from '../../components/patient/RequestCreatedState'
+import { fetchHospitals } from '../../api/hospitalApi'
+import { createBloodRequest } from '../../api/requestApi'
+import { bloodRequestToApi, bloodRequestFromApi } from '../../api/mappers'
 
 const initialForm = {
   bloodGroup: '',
   donationType: '',
   units: '',
+  neededBy: '',
   hospital: '',
   emergencyLevel: '',
   location: {
@@ -30,20 +35,20 @@ function validate(form) {
   if (!form.donationType) errors.donationType = 'Select a donation type.'
 
   const units = Number(form.units)
-  if (!form.units.trim()) {
+  if (!String(form.units).trim()) {
     errors.units = 'Enter the number of units required.'
   } else if (isNaN(units) || !Number.isInteger(units) || units < 1) {
     errors.units = 'Enter a valid positive number (minimum 1).'
   }
 
+  if (!form.neededBy) {
+    errors.neededBy = 'Select when the blood is needed.'
+  } else if (new Date(form.neededBy) <= new Date()) {
+    errors.neededBy = 'The needed-by time must be in the future.'
+  }
+
   if (!form.hospital) errors.hospital = 'Select a hospital.'
   if (!form.emergencyLevel) errors.emergencyLevel = 'Select an emergency level.'
-
-  if (form.location.mode === 'manual') {
-    if (!form.location.address.trim()) errors.location = 'Enter the request location.'
-  } else {
-    if (!form.location.latitude || !form.location.longitude) errors.location = 'Capture your current location first.'
-  }
 
   return errors
 }
@@ -53,6 +58,31 @@ function CreateBloodRequest() {
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState({})
   const [createdRequest, setCreatedRequest] = useState(null)
+
+  const [hospitals, setHospitals] = useState([])
+  const [hospitalsLoading, setHospitalsLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      try {
+        const list = await fetchHospitals()
+        if (!cancelled) setHospitals(list)
+      } catch (err) {
+        if (!cancelled) {
+          setSubmitError(err.response?.data?.message || 'Could not load hospitals.')
+        }
+      } finally {
+        if (!cancelled) setHospitalsLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [])
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -82,7 +112,7 @@ function CreateBloodRequest() {
     })
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     const validationErrors = validate(form)
 
@@ -92,17 +122,17 @@ function CreateBloodRequest() {
     }
 
     setErrors({})
-    setCreatedRequest({
-      id: 'REQ-DEMO-2002',
-      bloodGroup: form.bloodGroup,
-      donationType: form.donationType,
-      units: Number(form.units),
-      hospital: form.hospital,
-      emergencyLevel: form.emergencyLevel,
-      location: form.location.mode === 'current'
-        ? `${form.location.latitude}, ${form.location.longitude}`
-        : form.location.address,
-    })
+    setSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      const saved = await createBloodRequest(bloodRequestToApi(form))
+      setCreatedRequest(bloodRequestFromApi(saved))
+    } catch (err) {
+      setSubmitError(err.response?.data?.message || 'Could not create your request.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (createdRequest) {
@@ -122,6 +152,12 @@ function CreateBloodRequest() {
         onBack={() => navigate('/patient')}
       />
 
+      {submitError && (
+        <Alert variant="error" onDismiss={() => setSubmitError(null)}>
+          {submitError}
+        </Alert>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card title="Blood Requirement">
           <BloodRequirementForm
@@ -137,6 +173,8 @@ function CreateBloodRequest() {
             errors={errors}
             onChange={handleChange}
             onLocationChange={handleLocationChange}
+            hospitals={hospitals}
+            hospitalsLoading={hospitalsLoading}
           />
         </Card>
 
@@ -149,7 +187,7 @@ function CreateBloodRequest() {
         </Card>
 
         <div className="flex justify-end pb-4">
-          <Button type="submit" icon={Search}>
+          <Button type="submit" icon={Search} loading={submitting}>
             Find Donor
           </Button>
         </div>

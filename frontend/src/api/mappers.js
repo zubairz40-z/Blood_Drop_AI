@@ -109,15 +109,34 @@ export const URGENCY_LABELS = {
   ROUTINE: 'Routine',
 }
 
+/**
+ * The UI uses NORMAL/URGENT/CRITICAL; the API uses ROUTINE/URGENT/EMERGENCY.
+ * Also tolerates display labels from older demo data.
+ */
+const URGENCY_ALIASES = {
+  NORMAL: 'ROUTINE',
+  ROUTINE: 'ROUTINE',
+  URGENT: 'URGENT',
+  CRITICAL: 'EMERGENCY',
+  EMERGENCY: 'EMERGENCY',
+}
+
 export function toUrgencyCode(value) {
   if (!value) return null
+
   const upper = String(value).toUpperCase()
-  if (URGENCY_LABELS[upper]) return upper
+  if (URGENCY_ALIASES[upper]) return URGENCY_ALIASES[upper]
 
   const match = Object.entries(URGENCY_LABELS).find(
     ([, label]) => label.toLowerCase() === String(value).toLowerCase()
   )
   return match ? match[0] : null
+}
+
+/** API urgency -> the value EmergencyLevelSelector uses. */
+export function toUiUrgency(code) {
+  const reverse = { ROUTINE: 'NORMAL', URGENT: 'URGENT', EMERGENCY: 'CRITICAL' }
+  return reverse[code] || code
 }
 
 /* ------------------------------------------------------------------ */
