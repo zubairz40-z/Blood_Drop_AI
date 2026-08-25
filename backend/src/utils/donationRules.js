@@ -52,6 +52,7 @@ function calculateNextEligibleAt(component, donatedAt) {
 
 /** Age in whole years from a date of birth. */
 function calculateAge(dateOfBirth) {
+  if (!dateOfBirth) return null;
   const dob = new Date(dateOfBirth);
   const now = new Date();
   let age = now.getFullYear() - dob.getFullYear();
