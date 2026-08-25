@@ -1,9 +1,23 @@
-import { FileText, Users, Droplets, AlertTriangle } from 'lucide-react'
+import { FileText, Clock, CheckCircle, AlertTriangle } from 'lucide-react'
 import StatCard from '../ui/StatCard'
 
-function HospitalStatusGrid({ activeRequests, matchedDonors, donationsToday, emergencyCases }) {
+function HospitalStatusGrid({ pendingCount, verifiedCount, activeRequests, emergencyCases }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatCard
+        title="Awaiting Verification"
+        value={pendingCount}
+        icon={Clock}
+        tone={pendingCount > 0 ? 'warning' : 'success'}
+        description="Needs your review"
+      />
+      <StatCard
+        title="Verified"
+        value={verifiedCount}
+        icon={CheckCircle}
+        tone="success"
+        description="Approved by you"
+      />
       <StatCard
         title="Active Requests"
         value={activeRequests}
@@ -12,25 +26,11 @@ function HospitalStatusGrid({ activeRequests, matchedDonors, donationsToday, eme
         description="Currently in progress"
       />
       <StatCard
-        title="Matched Donors"
-        value={matchedDonors}
-        icon={Users}
-        tone="success"
-        description="Donors matched"
-      />
-      <StatCard
-        title="Donations Today"
-        value={donationsToday}
-        icon={Droplets}
-        tone="brand"
-        description="Completed today"
-      />
-      <StatCard
         title="Emergency Cases"
         value={emergencyCases}
         icon={AlertTriangle}
         tone="blood"
-        description="Urgent & critical"
+        description="Urgent & emergency"
       />
     </div>
   )
