@@ -48,17 +48,20 @@ const bloodRequestSchema = new mongoose.Schema(
       index: true,
     },
 
-    // GeoJSON — [longitude, latitude]
+    // GeoJSON — [longitude, latitude]. Usually copied from the selected hospital.
     location: {
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: {
         type: [Number],
-        required: true,
         validate: {
-          validator: (c) =>
-            c.length === 2 &&
-            c[0] >= -180 && c[0] <= 180 &&
-            c[1] >= -90 && c[1] <= 90,
+          validator: (c) => {
+            if (!c || c.length === 0) return true;
+            return (
+              c.length === 2 &&
+              c[0] >= -180 && c[0] <= 180 &&
+              c[1] >= -90 && c[1] <= 90
+            );
+          },
           message: "Coordinates must be [longitude, latitude].",
         },
       },

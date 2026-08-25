@@ -94,7 +94,14 @@ async function getMe(req, res, next) {
 }
 
 // Whitelist — everything else in the request body is ignored
-const UPDATABLE_FIELDS = ["name", "phone", "bloodGroup"];
+const UPDATABLE_FIELDS = [
+  "name",
+  "phone",
+  "bloodGroup",
+  "dateOfBirth",
+  "location",
+  "emergencyContact",
+];
 
 /** PATCH /api/users/me */
 async function updateMe(req, res, next) {

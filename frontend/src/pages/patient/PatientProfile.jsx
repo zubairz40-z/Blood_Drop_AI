@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import PageHeader from '../../components/common/PageHeader'
@@ -6,25 +6,19 @@ import Card from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
 import Alert from '../../components/ui/Alert'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import PatientProfileSummary from '../../components/patient/PatientProfileSummary'
 import PatientPersonalInfo from '../../components/patient/PatientPersonalInfo'
 import PatientBasicProfile from '../../components/patient/PatientBasicProfile'
 import PatientLocationForm from '../../components/patient/PatientLocationForm'
 import PatientEmergencyContact from '../../components/patient/PatientEmergencyContact'
 import PatientAccountSummary from '../../components/patient/PatientAccountSummary'
-import { demoPatientProfile } from '../../data/demoPatientProfile'
+import { useAuth } from '../../context/AuthContext'
+import { updateCurrentUser } from '../../api/userApi'
+import { fetchMyRequests } from '../../api/requestApi'
+import { userProfileFromApi, userProfileToApi, calculateAge } from '../../api/mappers'
 
-function createInitialForm() {
-  return {
-    name: demoPatientProfile.name,
-    email: demoPatientProfile.email,
-    phone: demoPatientProfile.phone,
-    bloodGroup: demoPatientProfile.bloodGroup,
-    age: demoPatientProfile.age,
-    location: { ...demoPatientProfile.location },
-    emergencyContact: { ...demoPatientProfile.emergencyContact },
-  }
-}
+const TERMINAL_STATUSES = ['FULFILLED', 'CANCELLED', 'REJECTED', 'EXPIRED']
 
 function validate(form) {
   const errors = {}
@@ -32,23 +26,9 @@ function validate(form) {
   if (!form.name.trim()) errors.name = 'Name is required.'
   if (!form.phone.trim()) errors.phone = 'Phone number is required.'
 
-  if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-    errors.email = 'Enter a valid email address.'
-  }
-
-  const age = Number(form.age)
-  if (!form.age.trim()) {
-    errors.age = 'Age is required.'
-  } else if (isNaN(age) || age <= 0 || !Number.isInteger(age)) {
-    errors.age = 'Enter a valid positive age.'
-  }
-
-  if (!form.bloodGroup) errors.bloodGroup = 'Select a blood group.'
-
-  if (form.location.mode === 'manual') {
-    if (!form.location.address.trim()) errors.location = 'Enter your location.'
-  } else {
-    if (!form.location.latitude || !form.location.longitude) errors.location = 'Use your current location before saving.'
+  if (form.dateOfBirth) {
+    const age = calculateAge(form.dateOfBirth)
+    if (age < 0 || age > 120) errors.dateOfBirth = 'Enter a valid date of birth.'
   }
 
   return errors
@@ -57,22 +37,56 @@ function validate(form) {
 function calculateCompleteness(form) {
   const fields = [
     form.name.trim(),
-    form.email.trim(),
     form.phone.trim(),
     form.bloodGroup,
-    form.age.trim(),
-    form.location.mode === 'manual' ? form.location.address.trim() : form.location.latitude,
+    form.dateOfBirth,
+    form.location.address?.trim() || form.location.latitude,
+    form.emergencyContact.name?.trim(),
   ]
-  const filled = fields.filter(Boolean).length
-  return Math.round((filled / fields.length) * 100)
+  return Math.round((fields.filter(Boolean).length / fields.length) * 100)
 }
 
 function PatientProfile() {
   const navigate = useNavigate()
-  const [form, setForm] = useState(createInitialForm)
-  const [savedForm, setSavedForm] = useState(createInitialForm)
+  const { profile: user, setProfile: setUser } = useAuth()
+
+  const [form, setForm] = useState(() => userProfileFromApi(user))
+  const [savedForm, setSavedForm] = useState(() => userProfileFromApi(user))
+  const [counts, setCounts] = useState({ active: 0, completed: 0 })
+
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [saveMessage, setSaveMessage] = useState(null)
+  const [loadError, setLoadError] = useState(null)
+
+  useEffect(() => {
+    if (!user) return
+
+    const mapped = userProfileFromApi(user)
+    setForm(mapped)
+    setSavedForm(mapped)
+
+    let cancelled = false
+
+    async function loadCounts() {
+      try {
+        const requests = await fetchMyRequests()
+        if (cancelled) return
+        setCounts({
+          active: requests.filter((r) => !TERMINAL_STATUSES.includes(r.status)).length,
+          completed: requests.filter((r) => r.status === 'FULFILLED').length,
+        })
+      } catch {
+        // Counts are supplementary — a failure here shouldn't block the page
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadCounts()
+    return () => { cancelled = true }
+  }, [user])
 
   const hasChanges = useMemo(
     () => JSON.stringify(form) !== JSON.stringify(savedForm),
@@ -83,7 +97,11 @@ function PatientProfile() {
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+    setForm((prev) => {
+      const next = { ...prev, [name]: value }
+      if (name === 'dateOfBirth') next.age = calculateAge(value)
+      return next
+    })
     setErrors((prev) => {
       const next = { ...prev }
       delete next[name]
@@ -104,7 +122,7 @@ function PatientProfile() {
     setForm((prev) => ({ ...prev, emergencyContact }))
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     const validationErrors = validate(form)
 
@@ -114,14 +132,36 @@ function PatientProfile() {
     }
 
     setErrors({})
-    setSavedForm({ ...form })
-    setSaveMessage('Profile changes are ready. Permanent saving will be connected with the backend later.')
+    setSaving(true)
+    setSaveMessage(null)
+    setLoadError(null)
+
+    try {
+      const updated = await updateCurrentUser(userProfileToApi(form))
+      setUser(updated)
+      const mapped = userProfileFromApi(updated)
+      setForm(mapped)
+      setSavedForm(mapped)
+      setSaveMessage('Your profile has been saved.')
+    } catch (err) {
+      setLoadError(err.response?.data?.message || 'Could not save your profile.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function handleCancel() {
     setForm({ ...savedForm })
     setErrors({})
     setSaveMessage(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24">
+        <LoadingSpinner />
+      </div>
+    )
   }
 
   return (
@@ -132,13 +172,11 @@ function PatientProfile() {
       className="space-y-6"
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <PageHeader
-              title="Patient Profile"
-              description="Keep your information accurate so BloodDrop can coordinate requests more effectively."
-            />
-          </div>
+        <div className="flex items-center gap-2">
+          <PageHeader
+            title="Patient Profile"
+            description="Keep your information accurate so BloodDrop can coordinate requests more effectively."
+          />
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="role-patient">Patient</Badge>
@@ -150,6 +188,12 @@ function PatientProfile() {
           </button>
         </div>
       </div>
+
+      {loadError && (
+        <Alert variant="error" onDismiss={() => setLoadError(null)}>
+          {loadError}
+        </Alert>
+      )}
 
       {saveMessage && (
         <Alert variant="success" onDismiss={() => setSaveMessage(null)}>
@@ -163,27 +207,19 @@ function PatientProfile() {
             <PatientProfileSummary
               name={form.name || 'Patient'}
               bloodGroup={form.bloodGroup || '—'}
-              activeRequests={demoPatientProfile.activeRequests}
-              completedRequests={demoPatientProfile.completedRequests}
+              activeRequests={counts.active}
+              completedRequests={counts.completed}
               completeness={completeness}
             />
           </div>
 
           <div className="lg:col-span-2 space-y-6">
             <Card title="Personal Information">
-              <PatientPersonalInfo
-                form={form}
-                errors={errors}
-                onChange={handleChange}
-              />
+              <PatientPersonalInfo form={form} errors={errors} onChange={handleChange} />
             </Card>
 
             <Card title="Basic Profile">
-              <PatientBasicProfile
-                form={form}
-                errors={errors}
-                onChange={handleChange}
-              />
+              <PatientBasicProfile form={form} errors={errors} onChange={handleChange} />
             </Card>
 
             <Card title="Location">
@@ -207,8 +243,8 @@ function PatientProfile() {
 
             <Card title="Account Summary">
               <PatientAccountSummary
-                activeRequests={demoPatientProfile.activeRequests}
-                completedRequests={demoPatientProfile.completedRequests}
+                activeRequests={counts.active}
+                completedRequests={counts.completed}
               />
             </Card>
 
@@ -217,11 +253,11 @@ function PatientProfile() {
                 type="button"
                 variant="ghost"
                 onClick={handleCancel}
-                disabled={!hasChanges}
+                disabled={!hasChanges || saving}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!hasChanges}>
+              <Button type="submit" loading={saving} disabled={!hasChanges}>
                 Save Changes
               </Button>
             </div>

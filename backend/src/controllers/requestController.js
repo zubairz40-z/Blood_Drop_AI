@@ -46,6 +46,17 @@ async function createRequest(req, res, next) {
       });
     }
 
+    // The collection point is the hospital, so prefer its coordinates.
+    // Falls back to whatever the patient supplied.
+    let requestLocation = location;
+    if (hospitalUser.location?.coordinates?.length === 2) {
+      requestLocation = {
+        type: "Point",
+        coordinates: hospitalUser.location.coordinates,
+        address: hospitalUser.address || location?.address || "",
+      };
+    }
+
     const request = await BloodRequest.create({
       patient: req.currentUser._id,
       hospital,
@@ -54,7 +65,7 @@ async function createRequest(req, res, next) {
       unitsRequired,
       urgency,
       neededBy,
-      location,
+      location: requestLocation,
       patientNote,
       status: STATUS.PENDING_VERIFICATION,
       statusHistory: [

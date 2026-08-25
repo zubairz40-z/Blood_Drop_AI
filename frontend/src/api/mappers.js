@@ -281,3 +281,43 @@ export function bloodRequestFromApi(request) {
     statusHistory: request.statusHistory || [],
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Patient / user profile                                              */
+/* ------------------------------------------------------------------ */
+
+/** User document -> patient profile form. */
+export function userProfileFromApi(user) {
+  const u = user || {}
+  return {
+    name: u.name || '',
+    email: u.email || '',
+    phone: u.phone || '',
+    bloodGroup: u.bloodGroup || '',
+    dateOfBirth: toDateInputValue(u.dateOfBirth),
+    age: calculateAge(u.dateOfBirth),
+    location: fromGeoJson(u.location),
+    emergencyContact: {
+      name: u.emergencyContact?.name || '',
+      phone: u.emergencyContact?.phone || '',
+      relationship: u.emergencyContact?.relationship || '',
+    },
+  }
+}
+
+/** Patient profile form -> PATCH /api/users/me. Email is deliberately excluded. */
+export function userProfileToApi(form) {
+  const payload = {
+    name: form.name,
+    phone: form.phone,
+    bloodGroup: form.bloodGroup || undefined,
+    emergencyContact: form.emergencyContact,
+  }
+
+  if (form.dateOfBirth) payload.dateOfBirth = form.dateOfBirth
+
+  const geo = toGeoJson(form.location)
+  if (geo) payload.location = geo
+
+  return payload
+}
