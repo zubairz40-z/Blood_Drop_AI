@@ -1,7 +1,7 @@
 import { FileText, CheckCircle, Clock, Users } from 'lucide-react'
 import StatCard from '../ui/StatCard'
 
-function PatientStatusGrid({ activeRequests, completedRequests, currentRequestId, matchedDonorCount }) {
+function PatientStatusGrid({ activeRequests, completedRequests, currentRequestId, pendingCount }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
@@ -26,11 +26,11 @@ function PatientStatusGrid({ activeRequests, completedRequests, currentRequestId
         description="Latest active request"
       />
       <StatCard
-        title="Matched Donor"
-        value={matchedDonorCount > 0 ? `${matchedDonorCount} donor` : 'None'}
+        title="Awaiting Verification"
+        value={pendingCount}
         icon={Users}
-        tone={matchedDonorCount > 0 ? 'success' : 'warning'}
-        description={matchedDonorCount > 0 ? 'Donor matched' : 'Searching for donors'}
+        tone={pendingCount > 0 ? 'warning' : 'success'}
+        description={pendingCount > 0 ? 'With the hospital' : 'Nothing pending'}
       />
     </div>
   )
