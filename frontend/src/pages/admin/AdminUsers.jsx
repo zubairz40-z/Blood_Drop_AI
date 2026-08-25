@@ -6,7 +6,7 @@ import Button from '../../components/ui/Button'
 import Alert from '../../components/ui/Alert'
 import EmptyState from '../../components/ui/EmptyState'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
-import { fetchPendingAccounts, approveAccount, rejectAccount } from '../../api/admin'
+import { fetchPendingAccounts, approveAccount, rejectAccount } from '../../api/adminApi'
 
 function AdminUsers() {
   const [pending, setPending] = useState([])
