@@ -25,6 +25,21 @@ const userSchema = new mongoose.Schema(
     approvedAt: { type: Date },
     rejectionReason: { type: String, trim: true },
     lastLoginAt: { type: Date },
+        address: { type: String, trim: true },
+
+    // GeoJSON — [longitude, latitude]. Hospitals only, for geo matching later.
+    location: {
+      type: { type: String, enum: ["Point"] },
+      coordinates: {
+        type: [Number],
+        validate: {
+          validator: (c) => !c || (c.length === 2 &&
+            c[0] >= -180 && c[0] <= 180 &&
+            c[1] >= -90 && c[1] <= 90),
+          message: "Coordinates must be [longitude, latitude].",
+        },
+      },
+    },
   },
   { timestamps: true }
 );
