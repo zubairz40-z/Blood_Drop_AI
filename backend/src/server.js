@@ -2,7 +2,7 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const app = require("./app");
 const connectDB = require("./config/database");
-const scheduler = require("./scheduler");
+const scheduler = require("./services/scheduler");
 
 const PORT = process.env.PORT || 5000;
 
