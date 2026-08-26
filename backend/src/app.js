@@ -11,6 +11,7 @@ const donorRoutes = require("./routes/donorRoutes");
 const requestRoutes = require("./routes/requestRoutes");
 const hospitalRoutes = require("./routes/hospitalRoutes");
 const donationRoutes = require("./routes/donationRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use("/api/donors", donorRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/hospitals", hospitalRoutes);
 app.use("/api/donations", donationRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 
 // Unknown route → JSON, not Express's default HTML
