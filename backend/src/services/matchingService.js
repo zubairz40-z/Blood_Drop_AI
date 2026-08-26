@@ -1,0 +1,192 @@
+const DonorProfile = require("../models/DonorProfile");
+const BloodRequest = require("../models/BloodRequest");
+const { STATUS } = require("../utils/requestStatus");
+const {
+  isCompatible,
+  compatibleDonorGroups,
+  checkEligibility,
+  estimateEtaMinutes,
+  SEARCH_RADIUS_KM,
+} = require("../utils/donationRules");
+
+/** Scoring weights. Mandatory filters are not scored — they gate entry. */
+const DISTANCE_WEIGHT = 70;
+const HISTORY_WEIGHT = 30;
+
+/** A donor with this many past donations scores full marks on reliability. */
+const HISTORY_SATURATION = 5;
+
+function fail(message, status = 400) {
+  const err = new Error(message);
+  err.status = status;
+  throw err;
+}
+
+/**
+ * Closer is better, on a linear falloff to the search radius.
+ * A donor at 0 km scores the full weight; one at the radius edge scores 0.
+ */
+function scoreDistance(distanceKm, radiusKm) {
+  if (distanceKm >= radiusKm) return 0;
+  return Math.round(DISTANCE_WEIGHT * (1 - distanceKm / radiusKm));
+}
+
+/**
+ * Past donations as a proxy for reliability — someone who has shown up
+ * five times is likelier to show up again. Saturates so a donor with 50
+ * donations doesn't crowd out a nearby donor with 5.
+ */
+function scoreHistory(totalDonations) {
+  const n = Math.min(totalDonations || 0, HISTORY_SATURATION);
+  return Math.round(HISTORY_WEIGHT * (n / HISTORY_SATURATION));
+}
+
+/**
+ * Finds ranked donor candidates for a request.
+ *
+ * Geography runs first because $geoNear is the only stage MongoDB can do
+ * for us — it turns "every donor in the database" into "the fifty nearest"
+ * inside the query. Every later filter then runs over a small in-memory set.
+ *
+ * Returns the Shared Contract 1 shape: { requestId, candidates: [...] }.
+ */
+async function findCandidates(requestId, { limit = 10, asOf = new Date() } = {}) {
+  const request = await BloodRequest.findById(requestId);
+  if (!request) fail("Request not found.", 404);
+
+  if (request.status !== STATUS.VERIFIED && request.status !== STATUS.MATCHING) {
+    fail(
+      `Matching needs a VERIFIED request. This one is ${request.status}.`,
+      409
+    );
+  }
+
+  const coords = request.location?.coordinates;
+  if (!coords || coords.length !== 2) {
+    fail(
+      "This request has no coordinates, so donors cannot be ranked by distance.",
+      409
+    );
+  }
+
+  const radiusKm = SEARCH_RADIUS_KM[request.urgency] ?? 25;
+
+  // Only these groups can help, so let the database discard the rest
+  const acceptableGroups = compatibleDonorGroups(
+    request.bloodGroup,
+    request.component
+  );
+
+  // Stage 1 — geography, in the database.
+  // $geoNear must be the first stage of the pipeline, and distanceField is
+  // returned in metres because the index is spherical.
+  const nearby = await DonorProfile.aggregate([
+    {
+      $geoNear: {
+        near: { type: "Point", coordinates: coords },
+        distanceField: "distanceMeters",
+        maxDistance: radiusKm * 1000,
+        spherical: true,
+        query: {
+          bloodGroup: { $in: acceptableGroups },
+          donationTypes: request.component,
+          isAvailable: true,
+        },
+      },
+    },
+    { $limit: 50 },
+  ]);
+
+  // Stage 2 — medical rules, in Node.
+  // checkEligibility is deliberately not expressible as a Mongo query: it is
+  // the single source of medical truth and must not be duplicated in a
+  // pipeline where it could drift out of sync.
+  const candidates = [];
+
+  for (const donor of nearby) {
+    const verdict = checkEligibility(donor, request.component, asOf);
+    if (!verdict.eligible) continue;
+
+    const distanceKm = Math.round((donor.distanceMeters / 1000) * 10) / 10;
+    const etaMinutes = estimateEtaMinutes(distanceKm);
+
+    const score = scoreDistance(distanceKm, radiusKm) + scoreHistory(donor.totalDonations);
+
+    candidates.push({
+      donorId: String(donor.user),
+      bloodGroup: donor.bloodGroup,
+      component: request.component,
+      eligible: true,
+      available: true,
+      distanceKm,
+      etaMinutes,
+      score,
+      reasons: [
+        `Compatible with ${request.bloodGroup}`,
+        "Eligible",
+        "Available",
+        distanceKm <= radiusKm / 2 ? "Nearby" : "Within range",
+      ],
+    });
+  }
+
+  // Highest score first; ties broken by proximity
+  candidates.sort((a, b) => b.score - a.score || a.distanceKm - b.distanceKm);
+
+  return {
+    requestId: String(request._id),
+    radiusKm,
+    candidates: candidates.slice(0, limit),
+  };
+}
+
+/**
+ * Explains why a specific donor is or isn't a candidate for a request.
+ * Used by the Eligibility Agent, and useful when a hospital asks why
+ * someone didn't appear in the list.
+ */
+async function explainDonor(requestId, donorUserId, asOf = new Date()) {
+  const request = await BloodRequest.findById(requestId);
+  if (!request) fail("Request not found.", 404);
+
+  const profile = await DonorProfile.findOne({ user: donorUserId });
+  if (!profile) fail("Donor profile not found.", 404);
+
+  const reasons = [];
+
+  const compatible = isCompatible(
+    profile.bloodGroup,
+    request.bloodGroup,
+    request.component
+  );
+  if (!compatible) {
+    reasons.push(
+      `${profile.bloodGroup} cannot give ${request.component} to ${request.bloodGroup}`
+    );
+  }
+
+  if (!profile.donationTypes.includes(request.component)) {
+    reasons.push("Donor does not offer this component");
+  }
+
+  if (!profile.isAvailable) {
+    reasons.push("Donor is currently unavailable");
+  }
+
+  const verdict = checkEligibility(profile, request.component, asOf);
+  reasons.push(...verdict.reasons);
+
+  return {
+    donorId: String(donorUserId),
+    eligible: reasons.length === 0,
+    reasons,
+    nextEligibleAt: verdict.nextEligibleAt,
+  };
+}
+
+module.exports = {
+  findCandidates,
+  explainDonor,
+  scoreDistance,
+  scoreHistory,
+};

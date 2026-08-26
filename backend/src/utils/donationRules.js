@@ -39,6 +39,24 @@ const MIN_AGE_YEARS = 18;
 const MAX_AGE_YEARS = 65;
 
 /**
+ * Assumed average travel speed in km/h, used to derive an ETA from
+ * straight-line distance.
+ *
+ * 25 km/h reflects typical Dhaka urban traffic. This is deliberately a
+ * rough estimate: the honest upgrade is Google's Distance Matrix API for
+ * real road-network travel time, which swaps in behind estimateEtaMinutes
+ * without changing any caller.
+ */
+const ASSUMED_SPEED_KMH = 25;
+
+/** Search radius in km by urgency. Wider when time matters more. */
+const SEARCH_RADIUS_KM = {
+  EMERGENCY: 50,
+  URGENT: 25,
+  ROUTINE: 10,
+};
+
+/**
  * Which donor blood groups a recipient can safely receive RED CELLS from.
  * Read as: RED_CELL_COMPATIBILITY[recipient] = [acceptable donors]
  *
@@ -130,6 +148,18 @@ function compatibleDonorGroups(recipientGroup, component) {
 /** Can this donor group give this component to this recipient group? */
 function isCompatible(donorGroup, recipientGroup, component) {
   return compatibleDonorGroups(recipientGroup, component).includes(donorGroup);
+}
+
+/**
+ * Rough travel time from straight-line distance.
+ *
+ * Straight-line, not road distance — so this understates real journeys,
+ * especially across a river or around a one-way system. Good enough to
+ * rank candidates against each other, which is all it is used for.
+ */
+function estimateEtaMinutes(distanceKm) {
+  if (typeof distanceKm !== "number" || distanceKm < 0) return null;
+  return Math.max(1, Math.round((distanceKm / ASSUMED_SPEED_KMH) * 60));
 }
 
 /**
@@ -231,6 +261,9 @@ module.exports = {
   BLOOD_GROUPS,
   RED_CELL_COMPATIBILITY,
   PLASMA_COMPATIBILITY,
+  ASSUMED_SPEED_KMH,
+  SEARCH_RADIUS_KM,
+  estimateEtaMinutes,
   compatibleDonorGroups,
   isCompatible,
   calculateNextEligibleAt,
