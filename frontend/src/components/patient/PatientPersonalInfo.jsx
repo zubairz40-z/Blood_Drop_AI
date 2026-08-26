@@ -19,9 +19,8 @@ function PatientPersonalInfo({ form, errors, onChange }) {
           name="email"
           type="email"
           value={form.email}
-          onChange={onChange}
-          placeholder="you@email.com"
-          error={errors.email}
+          disabled
+          helperText="Managed by your sign-in account"
         />
 
         <Input

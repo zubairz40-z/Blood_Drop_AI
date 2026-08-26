@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { ChevronDown, User, Settings, LogOut } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import Badge from '../ui/Badge'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
 const roleBadgeVariant = {
   Donor: 'role-donor',
@@ -15,6 +17,14 @@ const roleBadgeVariant = {
 function DashboardProfileMenu({ name = 'Demo User', role = 'Donor' }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+
+  const handleLogout = async () => {
+    setOpen(false)
+    await logout()
+    navigate('/login', { replace: true })
+  }
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -70,14 +80,14 @@ function DashboardProfileMenu({ name = 'Demo User', role = 'Donor' }) {
             </Link>
           </div>
           <div className="border-t border-border py-1">
-            <Link
-              to="/login"
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-red-50 hover:text-red-600 transition-colors"
-              onClick={() => setOpen(false)}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               Logout
-            </Link>
+            </button>
           </div>
         </div>
       )}

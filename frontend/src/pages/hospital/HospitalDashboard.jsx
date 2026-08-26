@@ -1,62 +1,57 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Plus } from 'lucide-react'
+import { ClipboardCheck } from 'lucide-react'
 import PageHeader from '../../components/common/PageHeader'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
 import Alert from '../../components/ui/Alert'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import HospitalStatusGrid from '../../components/hospital/HospitalStatusGrid'
 import HospitalActiveRequests from '../../components/hospital/HospitalActiveRequests'
-import HospitalMatchedDonors from '../../components/hospital/HospitalMatchedDonors'
-import HospitalInventory from '../../components/hospital/HospitalInventory'
 import HospitalEmergencyCases from '../../components/hospital/HospitalEmergencyCases'
-import HospitalCreateRequestModal from '../../components/hospital/HospitalCreateRequestModal'
-import {
-  demoHospital,
-  demoActiveRequests,
-  demoMatchedDonors,
-  demoBloodInventory,
-} from '../../data/demoHospitalData'
+import { fetchMyRequests } from '../../api/requestApi'
+import { bloodRequestFromApi } from '../../api/mappers'
+
+const TERMINAL_STATUSES = ['FULFILLED', 'CANCELLED', 'REJECTED', 'EXPIRED']
 
 function HospitalDashboard() {
-  const [activeRequests, setActiveRequests] = useState(demoActiveRequests)
-  const [matchedDonors, setMatchedDonors] = useState(demoMatchedDonors)
-  const [bloodInventory, setBloodInventory] = useState(demoBloodInventory)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [donationsToday] = useState(demoHospital.donationsToday)
-  const [alert, setAlert] = useState(null)
+  const navigate = useNavigate()
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const emergencyCases = activeRequests.filter(
-    (r) => r.emergencyLevel === 'CRITICAL' || r.emergencyLevel === 'URGENT'
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      try {
+        const list = await fetchMyRequests()
+        if (!cancelled) setRequests(list.map(bloodRequestFromApi))
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Could not load requests.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  const active = requests.filter((r) => !TERMINAL_STATUSES.includes(r.status))
+  const pending = requests.filter((r) => r.status === 'PENDING_VERIFICATION')
+  const verified = requests.filter((r) => r.status === 'VERIFIED')
+  const emergencies = active.filter(
+    (r) => r.urgency === 'EMERGENCY' || r.urgency === 'URGENT'
   )
 
-  function handleConfirmDonor(donorId) {
-    setMatchedDonors((prev) =>
-      prev.map((d) => (d.id === donorId ? { ...d, status: 'CONFIRMED' } : d))
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24">
+        <LoadingSpinner />
+      </div>
     )
-    setAlert('Donor confirmed for this demo session.')
-    setTimeout(() => setAlert(null), 3000)
-  }
-
-  function handleUpdateInventory(newInventory) {
-    setBloodInventory(newInventory)
-    setAlert('Inventory updated for this demo session.')
-    setTimeout(() => setAlert(null), 3000)
-  }
-
-  function handleCreateRequest(data) {
-    const newId = `REQ-H-DEMO-${300 + activeRequests.length + 1}`
-    setActiveRequests((prev) => [
-      {
-        id: newId,
-        ...data,
-        status: 'MATCHING',
-        createdAt: 'Just now',
-      },
-      ...prev,
-    ])
-    setAlert(`Request ${newId} created for this demo session.`)
-    setTimeout(() => setAlert(null), 3000)
   }
 
   return (
@@ -67,57 +62,36 @@ function HospitalDashboard() {
       className="space-y-6"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <PageHeader
-              title="Hospital Dashboard"
-              description="Manage blood requests, donor matches, donations, and inventory from one place."
-            />
-            <Badge variant="role-hospital">Hospital</Badge>
-          </div>
+        <div className="flex items-center gap-2">
+          <PageHeader
+            title="Hospital Dashboard"
+            description="Verify incoming patient requests and track their progress."
+          />
+          <Badge variant="role-hospital">Hospital</Badge>
         </div>
-        <Button icon={Plus} onClick={() => setCreateOpen(true)}>
-          Create Request
+        <Button icon={ClipboardCheck} onClick={() => navigate('/hospital/requests')}>
+          Verification Queue
+          {pending.length > 0 && ` (${pending.length})`}
         </Button>
       </div>
 
-      {alert && (
-        <Alert variant="success" onDismiss={() => setAlert(null)}>
-          {alert}
-        </Alert>
-      )}
+      {error && <Alert variant="error" onDismiss={() => setError(null)}>{error}</Alert>}
 
       <HospitalStatusGrid
-        activeRequests={activeRequests.length}
-        matchedDonors={matchedDonors.length}
-        donationsToday={donationsToday}
-        emergencyCases={emergencyCases.length}
+        pendingCount={pending.length}
+        verifiedCount={verified.length}
+        activeRequests={active.length}
+        emergencyCases={emergencies.length}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <HospitalActiveRequests requests={activeRequests} />
+          <HospitalActiveRequests requests={active} />
         </div>
         <div className="lg:col-span-1">
-          <HospitalEmergencyCases requests={activeRequests} />
+          <HospitalEmergencyCases requests={active} />
         </div>
       </div>
-
-      <HospitalMatchedDonors
-        donors={matchedDonors}
-        onConfirmDonor={handleConfirmDonor}
-      />
-
-      <HospitalInventory
-        inventory={bloodInventory}
-        onUpdateInventory={handleUpdateInventory}
-      />
-
-      <HospitalCreateRequestModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreateRequest={handleCreateRequest}
-      />
     </motion.div>
   )
 }

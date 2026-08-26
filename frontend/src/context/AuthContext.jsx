@@ -20,7 +20,8 @@ export function AuthProvider({ children }) {
         try {
           const { data } = await api.get('/api/auth/me')
           setProfile(data.user)
-        } catch {
+        } catch (err) {
+          console.error('AuthContext /me failed:', err.response?.status, err.response?.data || err.message)
           setProfile(null)
         }
       } else {

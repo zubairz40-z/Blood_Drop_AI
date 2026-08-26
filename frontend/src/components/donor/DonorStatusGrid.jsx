@@ -12,11 +12,20 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
 }
 
-function DonorStatusGrid({ donor, available, onToggleAvailability }) {
+function DonorStatusGrid({ donor, eligibility = [], available, onToggleAvailability }) {
+  const eligibleCount = eligibility.filter((e) => e.isEligible).length
+  const totalTypes = eligibility.length
+
+  // Soonest date the donor becomes eligible for something they're currently deferred from
+  const nextDate = eligibility
+    .filter((e) => !e.isEligible && e.nextEligibleAt)
+    .map((e) => e.nextEligibleAt)
+    .sort((a, b) => a - b)[0]
+
   const cards = [
     {
       title: 'Blood Group',
-      value: donor.bloodGroup,
+      value: donor.bloodGroup || '—',
       icon: Droplets,
       iconBg: 'bg-blood-soft',
       iconColor: 'text-blood',
@@ -24,20 +33,23 @@ function DonorStatusGrid({ donor, available, onToggleAvailability }) {
     },
     {
       title: 'Eligibility',
-      value: donor.eligibilityStatus,
+      value: totalTypes ? `${eligibleCount} of ${totalTypes}` : '—',
       icon: ShieldCheck,
-      iconBg: 'bg-emerald-50',
-      iconColor: 'text-emerald-600',
-      badge: { text: 'Eligible', variant: 'success' },
-      description: 'You are currently eligible to donate',
+      iconBg: eligibleCount > 0 ? 'bg-emerald-50' : 'bg-amber-50',
+      iconColor: eligibleCount > 0 ? 'text-emerald-600' : 'text-amber-600',
+      badge: {
+        text: eligibleCount > 0 ? 'Eligible' : 'Deferred',
+        variant: eligibleCount > 0 ? 'success' : 'warning',
+      },
+      description: 'Donation types you can give now',
     },
     {
       title: 'Next Eligible Date',
-      value: donor.nextEligibleDate || 'Eligible now',
+      value: nextDate ? nextDate.toLocaleDateString() : 'Eligible now',
       icon: Calendar,
       iconBg: 'bg-blue-50',
       iconColor: 'text-blue-600',
-      description: donor.nextEligibleDate ? 'You can donate again after this date' : 'No wait period',
+      description: nextDate ? 'For your deferred types' : 'No wait period',
     },
     {
       title: 'Availability',

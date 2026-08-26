@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Mail, User, Phone, Heart, UserCheck, Building2, HandHelping } from 'lucide-react'
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth'
 import { auth } from '../../config/firebase'
@@ -9,7 +9,8 @@ import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import Alert from '../../components/ui/Alert'
 import PasswordField from '../../components/auth/PasswordField'
-import { signInWithGoogle, googleFriendlyMessage } from '../../services/googleAuth'
+import { useAuth } from '../../context/AuthContext'
+import { signInWithGoogle } from '../../api/googleAuth'
 import GoogleIcon from '../../components/auth/GoogleIcon'
 
 const roles = [
@@ -21,11 +22,26 @@ const roles = [
 
 function Register() {
   const navigate = useNavigate()
+  const { setProfile } = useAuth()
+  const location = useLocation()
+  const googleInfo = location.state?.googleInfo || null
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [info, setInfo] = useState('')
+
+  useEffect(() => {
+    if (googleInfo) {
+      setForm((prev) => ({
+        ...prev,
+        name: googleInfo.name,
+        email: googleInfo.email,
+        phone: googleInfo.phone,
+        password: 'google-oauth',
+      }))
+    }
+  }, [googleInfo])
 
   const validate = () => {
     const errs = {}
@@ -40,13 +56,22 @@ function Register() {
     } else if (form.phone.replace(/\D/g, '').length < 7) {
       errs.phone = 'Please enter a valid phone number'
     }
-    if (!form.password) {
-      errs.password = 'Password is required'
-    } else if (form.password.length < 6) {
-      errs.password = 'Password must be at least 6 characters'
+    if (!googleInfo) {
+      if (!form.password) {
+        errs.password = 'Password is required'
+      } else if (form.password.length < 6) {
+        errs.password = 'Password must be at least 6 characters'
+      }
     }
     if (!form.role) errs.role = 'Please select a role'
     return errs
+  }
+
+  const DASHBOARD_BY_ROLE = {
+    patient: '/patient',
+    donor: '/donor',
+    hospital: '/hospital',
+    volunteer: '/volunteer',
   }
 
   const handleSubmit = async (e) => {
@@ -60,20 +85,33 @@ function Register() {
     setErrors({})
     setLoading(true)
 
+    const role = form.role.toLowerCase()
+
     try {
-      await createUserWithEmailAndPassword(auth, form.email, form.password)
-      await api.post('/api/auth/register', {
+      if (!googleInfo) {
+        await createUserWithEmailAndPassword(auth, form.email, form.password)
+      }
+
+      const { data } = await api.post('/api/auth/register', {
         name: form.name,
-        role: form.role.toLowerCase(),
+        role,
         phone: form.phone,
       })
-      await signOut(auth)
-      navigate('/login', { replace: true })
+
+      if (data.user.accountStatus === 'pending') {
+        await signOut(auth)
+        setLoading(false)
+        setInfo('Account created. A hospital account needs admin approval before you can sign in.')
+        return
+      }
+
+      setProfile(data.user)
+      navigate(DASHBOARD_BY_ROLE[role] || '/', { replace: true })
     } catch (err) {
-      if (auth.currentUser) {
+      if (auth.currentUser && !err.code) {
         await signOut(auth)
       }
-      setInfo(friendlyMessage(err))
+      setInfo(registerErrorMessage(err))
       setLoading(false)
     }
   }
@@ -116,8 +154,12 @@ function Register() {
       await signOut(auth)
       navigate('/login', { replace: true })
     } catch (err) {
-      const msg = googleFriendlyMessage(err)
-      if (msg !== null) setInfo(msg)
+      if (err.code === 'auth/popup-closed-by-user') {
+        setGoogleLoading(false)
+        return
+      }
+      const msg = registerErrorMessage(err)
+      setInfo(msg)
       if (auth.currentUser) {
         await signOut(auth)
       }
@@ -176,15 +218,17 @@ function Register() {
             autoComplete="tel"
           />
 
-          <PasswordField
-            name="password"
-            value={form.password}
-            onChange={handleChange('password')}
-            placeholder="At least 6 characters"
-            error={errors.password}
-            required
-            autoComplete="new-password"
-          />
+          {!googleInfo && (
+            <PasswordField
+              name="password"
+              value={form.password}
+              onChange={handleChange('password')}
+              placeholder="At least 6 characters"
+              error={errors.password}
+              required
+              autoComplete="new-password"
+            />
+          )}
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-text-charcoal">
@@ -256,18 +300,18 @@ function Register() {
   )
 }
 
-function friendlyMessage(err) {
+function registerErrorMessage(err) {
   switch (err.code) {
     case 'auth/email-already-in-use':
-      return 'An account with this email already exists.'
+      return 'An account with that email already exists.'
     case 'auth/invalid-email':
       return 'Please enter a valid email address.'
-    case 'auth/operation-not-allowed':
-      return 'Email/Password sign-up is not enabled in Firebase.'
     case 'auth/weak-password':
       return 'Password is too weak. Use at least 6 characters.'
+    case 'auth/operation-not-allowed':
+      return 'Email/Password sign-up is not enabled in Firebase.'
     default:
-      return err.response?.data?.message || err.message || 'Something went wrong.'
+      return err.response?.data?.message || err.message || 'Could not create your account.'
   }
 }
 

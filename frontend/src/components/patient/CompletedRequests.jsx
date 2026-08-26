@@ -25,8 +25,10 @@ function CompletedRequests({ requests = [] }) {
                   <span className="text-xs font-bold text-emerald-700">{req.bloodGroup}</span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-text-dark">{req.donationType}</p>
-                  <p className="text-xs text-text-muted">{req.units} {req.units === 1 ? 'unit' : 'units'} · {req.id}</p>
+                  <p className="text-sm font-medium text-text-dark">{req.componentLabel}</p>
+                  <p className="text-xs text-text-muted">
+                    {req.unitsRequired} {req.unitsRequired === 1 ? 'unit' : 'units'} · {req.shortId}
+                  </p>
                 </div>
               </div>
               <Badge variant="success">COMPLETED</Badge>

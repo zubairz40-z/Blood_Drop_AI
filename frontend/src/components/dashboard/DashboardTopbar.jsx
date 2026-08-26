@@ -2,6 +2,7 @@ import { Menu } from 'lucide-react'
 import NotificationBell from '../common/NotificationBell'
 import DashboardProfileMenu from './DashboardProfileMenu'
 import { demoNotifications } from '../../data/demoNotifications'
+import { useAuth } from '../../context/AuthContext'
 
 const roleKeyMap = {
   Donor: 'donor',
@@ -11,7 +12,9 @@ const roleKeyMap = {
   Admin: 'admin',
 }
 
-function DashboardTopbar({ roleLabel = 'Donor', onMenuClick, name = 'Demo User' }) {
+function DashboardTopbar({ roleLabel = 'Donor', onMenuClick }) {
+  const { profile } = useAuth()
+  const name = profile?.name || 'User'
   const roleKey = roleKeyMap[roleLabel] || 'donor'
   const notifications = demoNotifications[roleKey] || []
   const unreadCount = notifications.filter((n) => !n.read).length

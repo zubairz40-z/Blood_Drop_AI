@@ -1,7 +1,7 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
-const User = require("./models/User");
-const { getAuth } = require("./config/firebaseAdmin");
+const User = require("../src/models/User");
+const { getAuth } = require("../src/config/firebase");
 
 const ADMIN_EMAIL = "admin@blooddrop.local";
 const ADMIN_PASSWORD = "ChangeThisNow123";

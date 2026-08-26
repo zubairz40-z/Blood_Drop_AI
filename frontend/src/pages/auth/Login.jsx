@@ -11,7 +11,7 @@ import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { auth } from '../../config/firebase'
 import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
-import { signInWithGoogle, googleFriendlyMessage } from '../../services/googleAuth'
+import { signInWithGoogle } from '../../api/googleAuth'
 import GoogleIcon from '../../components/auth/GoogleIcon'
 
 function Login() {
@@ -36,7 +36,7 @@ function Login() {
     return errs
   }
 
-    const DASHBOARD_BY_ROLE = {
+  const DASHBOARD_BY_ROLE = {
     patient: '/patient',
     donor: '/donor',
     hospital: '/hospital',
@@ -80,25 +80,21 @@ function Login() {
     setGoogleLoading(true)
 
     try {
-      await signInWithGoogle()
-      const { data } = await api.post('/api/auth/login')
-      if (data.user.accountStatus === 'pending') {
-        await signOut(auth)
-        setInfo('Your account is awaiting admin approval. Please check back later.')
-        setGoogleLoading(false)
+      const result = await signInWithGoogle()
+
+      if (result.status === 'new') {
+        navigate('/register', { state: { googleInfo: result.googleInfo } })
         return
       }
-      if (data.user.accountStatus === 'rejected' || data.user.accountStatus === 'suspended') {
-        await signOut(auth)
-        setInfo('This account is not active. Please contact support.')
-        setGoogleLoading(false)
-        return
-      }
-      setProfile(data.user)
-      navigate(DASHBOARD_BY_ROLE[data.user.role] || '/', { replace: true })
+
+      setProfile(result.user)
+      navigate(DASHBOARD_BY_ROLE[result.user.role] || '/', { replace: true })
     } catch (err) {
-      const msg = googleFriendlyMessage(err)
-      if (msg !== null) setInfo(msg)
+      if (err.code === 'auth/popup-closed-by-user') {
+        setGoogleLoading(false)
+        return
+      }
+      setInfo(friendlyMessage(err))
       if (auth.currentUser && err.code) {
         await signOut(auth)
       }

@@ -3,15 +3,15 @@ import { Navigation, Loader2 } from 'lucide-react'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
 import Alert from '../ui/Alert'
-import { hospitalPartners } from '../../data/hospitals'
 
-function RequestLocationForm({ form, errors, onChange, onLocationChange }) {
+
+function RequestLocationForm({ form, errors, onChange, onLocationChange, hospitals = [], hospitalsLoading }) {
   const [locating, setLocating] = useState(false)
   const [locationMessage, setLocationMessage] = useState(null)
 
-  const hospitalOptions = hospitalPartners.map((h) => ({
-    value: h.name,
-    label: h.name,
+  const hospitalOptions = hospitals.map((h) => ({
+    value: h.id,
+    label: h.address ? `${h.name} — ${h.address}` : h.name,
   }))
 
   function handleGetLocation() {
@@ -60,13 +60,13 @@ function RequestLocationForm({ form, errors, onChange, onLocationChange }) {
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
-          <Select
+            <Select
             label="Hospital"
             name="hospital"
             value={form.hospital}
             onChange={onChange}
             options={hospitalOptions}
-            placeholder="Select hospital"
+            placeholder={hospitalsLoading ? 'Loading hospitals...' : 'Select hospital'}
             required
             error={errors.hospital}
           />

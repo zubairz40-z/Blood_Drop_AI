@@ -36,6 +36,7 @@ import AdminRiskAlerts from '../pages/admin/AdminRiskAlerts'
 import AdminFunding from '../pages/admin/AdminFunding'
 import NotificationsPage from '../pages/notifications/NotificationsPage'
 import NotFound from '../pages/NotFound'
+import ProtectedRoute from '../components/auth/ProtectedRoute'
 
 function AppRoutes() {
   return (
@@ -57,7 +58,14 @@ function AppRoutes() {
         <Route path="*" element={<NotFound />} />
       </Route>
 
-      <Route path="/patient" element={<DashboardLayout role="patient" />}>
+      <Route
+        path="/patient"
+        element={
+          <ProtectedRoute role="patient">
+            <DashboardLayout role="patient" />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<PatientDashboard />} />
         <Route path="requests/create" element={<CreateBloodRequest />} />
         <Route path="requests" element={<PatientRequests />} />
@@ -69,7 +77,14 @@ function AppRoutes() {
         <Route path="*" element={<NotFound />} />
       </Route>
 
-      <Route path="/hospital" element={<DashboardLayout role="hospital" />}>
+      <Route
+        path="/hospital"
+        element={
+          <ProtectedRoute role="hospital">
+            <DashboardLayout role="hospital" />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<HospitalDashboard />} />
         <Route path="requests" element={<HospitalRequests />} />
         <Route path="matches" element={<HospitalMatches />} />
@@ -79,7 +94,14 @@ function AppRoutes() {
         <Route path="*" element={<NotFound />} />
       </Route>
 
-      <Route path="/volunteer" element={<DashboardLayout role="volunteer" />}>
+      <Route
+        path="/volunteer"
+        element={
+          <ProtectedRoute role="volunteer">
+            <DashboardLayout role="volunteer" />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<VolunteerDashboard />} />
         <Route path="tasks" element={<VolunteerTasks />} />
         <Route path="history" element={<VolunteerAssistanceHistory />} />
@@ -88,7 +110,14 @@ function AppRoutes() {
         <Route path="*" element={<NotFound />} />
       </Route>
 
-      <Route path="/admin" element={<DashboardLayout role="admin" />}>
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute role="admin">
+            <DashboardLayout role="admin" />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<AdminDashboard />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="requests" element={<AdminBloodRequests />} />
@@ -98,6 +127,15 @@ function AppRoutes() {
         <Route path="funding" element={<AdminFunding />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="*" element={<NotFound />} />
+      </Route>
+
+      <Route
+        path="/donor"
+        element={
+          <ProtectedRoute role="donor">
+            <DashboardLayout role="donor" />
+          </ProtectedRoute>
+        } >
       </Route>
 
       <Route path="*" element={<NotFound />} />

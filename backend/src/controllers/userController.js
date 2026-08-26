@@ -1,12 +1,10 @@
-const express = require("express");
-const router = express.Router();
 const User = require("../models/User");
-const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
 
 const SELF_SERVICE_ROLES = ["patient", "donor", "volunteer", "hospital"];
 const ROLES_NEEDING_APPROVAL = ["hospital"];
 
-router.post("/register", verifyFirebaseToken, async (req, res) => {
+/** POST /api/auth/register */
+async function register(req, res, next) {
   try {
     const { uid, email } = req.firebaseUser;
     const { name, role, phone, bloodGroup } = req.body;
@@ -37,12 +35,12 @@ router.post("/register", verifyFirebaseToken, async (req, res) => {
 
     res.status(201).json({ success: true, user });
   } catch (err) {
-    console.error("Register error:", err);
-    res.status(500).json({ success: false, message: "Could not create account" });
+    next(err);
   }
-});
+}
 
-router.post("/login", verifyFirebaseToken, async (req, res) => {
+/** POST /api/auth/login */
+async function login(req, res, next) {
   try {
     const user = await User.findOne({ firebaseUid: req.firebaseUser.uid });
 
@@ -72,22 +70,76 @@ router.post("/login", verifyFirebaseToken, async (req, res) => {
 
     res.json({ success: true, user });
   } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ success: false, message: "Something went wrong on the server" });
+    next(err);
   }
-});
+}
 
-router.get("/me", verifyFirebaseToken, async (req, res) => {
+/** GET /api/auth/me */
+async function getMe(req, res, next) {
   try {
     const user = await User.findOne({ firebaseUid: req.firebaseUser.uid });
+
     if (!user) {
       return res.status(404).json({ success: false, message: "Profile not found" });
     }
+
+    if (user.accountStatus && user.accountStatus !== "active") {
+      return res.status(403).json({ success: false, message: "This account is not active." });
+    }
+
     res.json({ success: true, user });
   } catch (err) {
-    console.error("Profile fetch error:", err);
-    res.status(500).json({ success: false, message: "Something went wrong on the server" });
+    next(err);
   }
-});
+}
 
-module.exports = router;
+// Whitelist — everything else in the request body is ignored
+const UPDATABLE_FIELDS = [
+  "name",
+  "phone",
+  "bloodGroup",
+  "dateOfBirth",
+  "location",
+  "emergencyContact",
+];
+
+/** PATCH /api/users/me */
+async function updateMe(req, res, next) {
+  try {
+    const user = await User.findOne({ firebaseUid: req.firebaseUser.uid });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Profile not found" });
+    }
+
+    if (user.accountStatus && user.accountStatus !== "active") {
+      return res.status(403).json({ success: false, message: "This account is not active." });
+    }
+
+    const updates = {};
+    for (const field of UPDATABLE_FIELDS) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No updatable fields provided.",
+      });
+    }
+
+    Object.assign(user, updates);
+    await user.save(); // triggers schema validation, e.g. the bloodGroup enum
+
+    res.json({ success: true, user });
+  } catch (err) {
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+    next(err);
+  }
+}
+
+module.exports = { register, login, getMe, updateMe };

@@ -18,14 +18,13 @@ function PatientBasicProfile({ form, errors, onChange }) {
         />
 
         <Input
-          label="Age"
-          name="age"
-          type="number"
-          value={form.age}
+          label="Date of Birth"
+          name="dateOfBirth"
+          type="date"
+          value={form.dateOfBirth}
           onChange={onChange}
-          placeholder="34"
-          required
-          error={errors.age}
+          error={errors.dateOfBirth}
+          helperText={form.age != null && form.age >= 0 ? `Age: ${form.age}` : undefined}
         />
       </div>
     </div>

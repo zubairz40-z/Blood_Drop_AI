@@ -1,15 +1,9 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, Sparkles } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
 import Card from '../ui/Card'
 import Badge from '../ui/Badge'
 import Button from '../ui/Button'
-
-const emergencyVariant = {
-  CRITICAL: 'error',
-  URGENT: 'warning',
-  NORMAL: 'info',
-}
 
 function RequestCreatedState({ request }) {
   const navigate = useNavigate()
@@ -26,19 +20,19 @@ function RequestCreatedState({ request }) {
             <CheckCircle className="w-8 h-8 text-emerald-500" />
           </div>
           <h2 className="text-xl font-bold text-text-dark">Request Created</h2>
-          <div className="flex items-center gap-2 mt-2">
-            <Sparkles className="w-4 h-4 text-brand" />
-            <p className="text-sm font-medium text-brand">AI coordination started</p>
-          </div>
-          <p className="text-sm text-text-muted mt-1">
-            Your blood request has been prepared for coordination in this demo session.
+          <p className="text-sm text-text-muted mt-2">
+            Your request has been sent to the hospital for verification. You&apos;ll be notified once it&apos;s approved.
           </p>
         </div>
 
         <div className="bg-surface-soft rounded-xl p-4 mt-4 text-left space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-text-muted">Request ID</span>
-            <span className="text-sm font-medium text-text-dark">{request.id}</span>
+            <span className="text-sm font-medium text-text-dark">{request.shortId}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-text-muted">Status</span>
+            <Badge variant={request.statusVariant}>{request.statusLabel}</Badge>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-text-muted">Blood Group</span>
@@ -46,26 +40,28 @@ function RequestCreatedState({ request }) {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-text-muted">Donation Type</span>
-            <span className="text-sm font-medium text-text-dark">{request.donationType}</span>
+            <span className="text-sm font-medium text-text-dark">{request.componentLabel}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-text-muted">Units</span>
-            <span className="text-sm font-medium text-text-dark">{request.units}</span>
+            <span className="text-sm font-medium text-text-dark">{request.unitsRequired}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-text-muted">Emergency Level</span>
-            <Badge variant={emergencyVariant[request.emergencyLevel] || 'neutral'}>
-              {request.emergencyLevel}
-            </Badge>
+            <span className="text-sm text-text-muted">Urgency</span>
+            <span className="text-sm font-medium text-text-dark">{request.urgencyLabel}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-text-muted">Hospital</span>
-            <span className="text-sm font-medium text-text-dark">{request.hospital}</span>
-          </div>
-          {request.location && (
+          {request.hospital?.name && (
             <div className="flex items-center justify-between">
-              <span className="text-sm text-text-muted">Location</span>
-              <span className="text-sm font-medium text-text-dark">{request.location}</span>
+              <span className="text-sm text-text-muted">Hospital</span>
+              <span className="text-sm font-medium text-text-dark">{request.hospital.name}</span>
+            </div>
+          )}
+          {request.neededBy && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-muted">Needed By</span>
+              <span className="text-sm font-medium text-text-dark">
+                {request.neededBy.toLocaleString()}
+              </span>
             </div>
           )}
         </div>
@@ -80,10 +76,10 @@ function RequestCreatedState({ request }) {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => window.location.reload()}
+            onClick={() => navigate('/patient/requests')}
             className="flex-1"
           >
-            Create Another Request
+            View My Requests
           </Button>
         </div>
       </Card>
