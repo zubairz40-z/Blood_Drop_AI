@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { X, Send, Bot } from 'lucide-react'
+import { X, Send, Bot, Loader2 } from 'lucide-react'
 import ChatMessage from './ChatMessage'
 import SuggestedPrompts from './SuggestedPrompts'
-import findResponse from '../../data/demoChatbotResponses'
+import { sendChatMessage } from '../../api/chatApi'
 
 const suggestedPrompts = [
   'How do I request blood?',
@@ -21,6 +21,7 @@ const welcomeMessage = {
 function GeminiChatbot({ onClose }) {
   const [messages, setMessages] = useState([welcomeMessage])
   const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -32,17 +33,30 @@ function GeminiChatbot({ onClose }) {
     inputRef.current?.focus()
   }, [])
 
-  function handleSend(text) {
+  async function handleSend(text) {
     const trimmed = (text || input).trim()
-    if (!trimmed) return
+    if (!trimmed || loading) return
 
     const userMsg = { id: 'user-' + Date.now(), role: 'user', text: trimmed }
     setMessages((prev) => [...prev, userMsg])
     setInput('')
+    setLoading(true)
 
-    const reply = findResponse(trimmed)
-    const assistantMsg = { id: 'assistant-' + Date.now(), role: 'assistant', text: reply }
-    setMessages((prev) => [...prev, assistantMsg])
+    try {
+      const reply = await sendChatMessage(trimmed)
+      const assistantMsg = { id: 'assistant-' + Date.now(), role: 'assistant', text: reply }
+      setMessages((prev) => [...prev, assistantMsg])
+    } catch {
+      const errorMsg = {
+        id: 'error-' + Date.now(),
+        role: 'assistant',
+        text: 'BloodDrop AI is temporarily unavailable. Please try again.',
+      }
+      setMessages((prev) => [...prev, errorMsg])
+    } finally {
+      setLoading(false)
+      inputRef.current?.focus()
+    }
   }
 
   function handleKeyDown(e) {
@@ -67,7 +81,7 @@ function GeminiChatbot({ onClose }) {
           </div>
           <div>
             <p className="text-sm font-semibold text-brand">BloodDrop Assistant</p>
-            <p className="text-[10px] text-text-muted">Demo conversation UI</p>
+            <p className="text-[10px] text-text-muted">Powered by Gemini</p>
           </div>
         </div>
         <button
@@ -83,6 +97,16 @@ function GeminiChatbot({ onClose }) {
         {messages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
+        {loading && (
+          <div className="flex gap-2 justify-start">
+            <div className="w-7 h-7 rounded-full bg-brand-soft flex items-center justify-center shrink-0">
+              <Bot className="w-4 h-4 text-brand" />
+            </div>
+            <div className="px-3.5 py-2.5 bg-white border border-border rounded-2xl rounded-bl-md">
+              <Loader2 className="w-4 h-4 text-brand animate-spin" />
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -99,16 +123,17 @@ function GeminiChatbot({ onClose }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about BloodDrop..."
-            className="flex-1 px-3.5 py-2.5 text-sm bg-surface-soft border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all placeholder:text-text-light"
+            disabled={loading}
+            className="flex-1 px-3.5 py-2.5 text-sm bg-surface-soft border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all placeholder:text-text-light disabled:opacity-50"
             aria-label="Ask about BloodDrop"
           />
           <button
             onClick={() => handleSend()}
-            disabled={!input.trim()}
+            disabled={!input.trim() || loading}
             aria-label="Send message"
             className="p-2.5 bg-brand hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-colors cursor-pointer"
           >
-            <Send className="w-4 h-4" />
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </div>
         <p className="text-[10px] text-text-light mt-2 text-center">
