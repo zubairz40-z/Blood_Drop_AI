@@ -55,13 +55,35 @@ async function generateGeminiText(prompt) {
 
   const client = getClient();
 
-  const response = await client.models.generateContent({
-    model: "gemini-3.6-flash",
-    contents: prompt,
-  });
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: prompt,
+    });
 
-  // response.text is a getter that returns the text of the first candidate
-  return response.text;
+    // response.text is a getter that returns the text of the first candidate
+    const text = response.text;
+    if (!text || typeof text !== "string" || text.trim().length === 0) {
+      throw new Error("Gemini returned an empty response.");
+    }
+    return text;
+  } catch (err) {
+    // Wrap SDK/network errors into a safe, readable message.
+    // Never expose API keys, SDK internals, or provider stack traces.
+    const msg = err.message || String(err);
+    if (
+      msg.includes("API key") ||
+      msg.includes("quota") ||
+      msg.includes("rate limit") ||
+      msg.includes("permission")
+    ) {
+      throw new Error("Gemini API access issue. Please try again shortly.");
+    }
+    if (msg.includes("timeout") || msg.includes("network")) {
+      throw new Error("Gemini request timed out. Please try again.");
+    }
+    throw new Error("Gemini is temporarily unavailable.");
+  }
 }
 
 module.exports = { generateGeminiText };

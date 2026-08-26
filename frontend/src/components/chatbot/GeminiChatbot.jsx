@@ -124,6 +124,7 @@ function GeminiChatbot({ onClose }) {
             onKeyDown={handleKeyDown}
             placeholder="Ask about BloodDrop..."
             disabled={loading}
+            maxLength={2000}
             className="flex-1 px-3.5 py-2.5 text-sm bg-surface-soft border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all placeholder:text-text-light disabled:opacity-50"
             aria-label="Ask about BloodDrop"
           />

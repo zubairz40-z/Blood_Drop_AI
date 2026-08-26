@@ -146,6 +146,8 @@ function AICoordination() {
   const geo = result.geoResult || {}
   const agentStatus = result.agentStatus || {}
 
+  const isPendingVerification = info.status === 'PENDING_VERIFICATION'
+
   // Build map markers from request location
   const requestCoords = normalizeCoordinates(requestInfo?.location)
   const mapMarkers = requestCoords
@@ -254,6 +256,13 @@ function AICoordination() {
         <Badge variant="info">{actionText}</Badge>
       </div>
 
+      {isPendingVerification && (
+        <Alert variant="warning" className="text-xs">
+          <span className="font-medium">Verification required.</span>{' '}
+          This request must be verified by a hospital before the full AI coordination pipeline can begin matching donors.
+        </Alert>
+      )}
+
       {/* Location visualization */}
       <div>
         <BloodDropMap markers={mapMarkers} height="300px" />
@@ -268,7 +277,7 @@ function AICoordination() {
         <AIAgentCard
           icon={BrainCircuit}
           title="AI Manager"
-          status={agentStatus.manager || 'COMPLETED'}
+          status={agentStatus.manager || (agentStatus.matching && agentStatus.eligibility && agentStatus.geo && agentStatus.risk ? 'COMPLETED' : 'PENDING')}
           description="Top-level coordination agent producing the final recommendation."
           outputs={managerOutputs}
         />
@@ -276,13 +285,13 @@ function AICoordination() {
         <Connector />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <AIAgentCard
-            icon={Users}
-            title="Donor Matching"
-            status={agentStatus.matching === 'COMPLETED' ? 'COMPLETED' : agentStatus.matching || 'PENDING'}
-            description="Selects primary and backup donors from scored candidates."
-            outputs={matchingOutputs}
-          >
+        <AIAgentCard
+          icon={Users}
+          title="Donor Matching"
+          status={agentStatus.matching || 'PENDING'}
+          description="Selects primary and backup donors from scored candidates."
+          outputs={matchingOutputs}
+        >
             <div className="mt-3 pt-3 border-t border-border">
               <div className="grid grid-cols-2 gap-2">
                 <div className="text-center p-2 bg-surface-soft rounded-lg">
@@ -300,7 +309,7 @@ function AICoordination() {
           <AIAgentCard
             icon={ShieldCheck}
             title="Eligibility &amp; Scheduling"
-            status={agentStatus.eligibility === 'COMPLETED' ? 'COMPLETED' : agentStatus.eligibility || 'PENDING'}
+            status={agentStatus.eligibility || 'PENDING'}
             description="Per-donor eligibility assessment with timing details."
             outputs={eligibilityOutputs}
           >
@@ -315,7 +324,7 @@ function AICoordination() {
           <AIAgentCard
             icon={MapPin}
             title="Geo Coordination"
-            status={agentStatus.geo === 'COMPLETED' ? 'COMPLETED' : agentStatus.geo || 'PENDING'}
+            status={agentStatus.geo || 'PENDING'}
             description="Distance-sorted ranking with ETA estimates."
             outputs={geoOutputs}
           >
@@ -332,14 +341,28 @@ function AICoordination() {
 
         <Connector />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <BestMatchCard match={bestMatch} />
+        {!result.recommendedDonor ? (
+          <div className="p-6 bg-surface-soft border border-border rounded-2xl text-center">
+            <SearchX className="w-8 h-8 text-text-light mx-auto mb-2" />
+            <p className="text-sm font-medium text-text-dark">
+              {result.nextAction === 'NO_ELIGIBLE_CANDIDATES'
+                ? 'No eligible donors found'
+                : result.nextAction === 'EXPAND_SEARCH'
+                ? 'No candidates found — search radius should be expanded'
+                : 'No donor recommendation available'}
+            </p>
+            <p className="text-xs text-text-muted mt-1">{result.explanation}</p>
           </div>
-          <div className="lg:col-span-1">
-            <RiskAdvisorStatus risk={riskCard} />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <BestMatchCard match={bestMatch} />
+            </div>
+            <div className="lg:col-span-1">
+              <RiskAdvisorStatus risk={riskCard} />
+            </div>
           </div>
-        </div>
+        )}
 
         <Connector />
 

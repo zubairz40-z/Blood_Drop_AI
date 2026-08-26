@@ -322,4 +322,13 @@ describe("coordinateRealRequest (real five-agent path)", () => {
     assert.equal(eligibilitySchedulingAgent.assessDonors.mock.callCount(), 1);
     assert.equal(geoCoordinationAgent.coordinate.mock.callCount(), 1);
   });
+
+  test("riskReasons and recommendation are included in output", async () => {
+    const result = await orchestrator.coordinateRealRequest({ requestId: REQUEST_ID });
+    assert.ok(Array.isArray(result.riskReasons), "riskReasons should be an array");
+    assert.ok(
+      result.recommendation === null || typeof result.recommendation === "string",
+      "recommendation should be string or null"
+    );
+  });
 });

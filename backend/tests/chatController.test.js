@@ -104,21 +104,37 @@ describe("Chat Controller — handleChat", () => {
     assert.ok(res._json.message.includes("2000"));
   });
 
-  test("Gemini failure returns safe error through error handler", async () => {
+  test("Gemini failure returns 503 with safe error message", async () => {
     const stub = mock.method(geminiService, "generateGeminiText", async () => {
       throw new Error("GEMINI_API_KEY is not set.");
     });
     try {
       const req = makeReq({ message: "test" });
       const res = makeRes();
-      let caught = false;
-      try {
-        await handleChat(req, res, (err) => { throw err; });
-      } catch (err) {
-        caught = true;
-        assert.ok(err.message.includes("GEMINI"));
-      }
-      assert.ok(caught, "Error should propagate");
+      await handleChat(req, res, makeNext());
+
+      assert.equal(res._status, 503);
+      assert.equal(res._json.success, false);
+      assert.ok(res._json.message.includes("temporarily unavailable"));
+      // Must NOT expose the real error message
+      assert.ok(!JSON.stringify(res._json).includes("GEMINI_API_KEY"));
+    } finally {
+      stub.mock.restore();
+    }
+  });
+
+  test("Gemini timeout returns 503 with safe message", async () => {
+    const stub = mock.method(geminiService, "generateGeminiText", async () => {
+      throw new Error("Gemini request timed out.");
+    });
+    try {
+      const req = makeReq({ message: "test" });
+      const res = makeRes();
+      await handleChat(req, res, makeNext());
+
+      assert.equal(res._status, 503);
+      assert.equal(res._json.success, false);
+      assert.ok(!JSON.stringify(res._json).includes("timed out"));
     } finally {
       stub.mock.restore();
     }
@@ -141,7 +157,6 @@ describe("Chat Controller — handleChat", () => {
   });
 
   test("existing /api/health still works after chat route added", async () => {
-    // Import app and use it as a check that route registration didn't break
     const app = require("../src/app");
     assert.ok(app, "app should load");
   });

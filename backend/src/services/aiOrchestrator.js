@@ -298,6 +298,11 @@ async function coordinateRealRequest({ requestId }) {
     status: request.status,
   };
 
+  // Expose risk reasons and recommendation so the frontend can display
+  // real operational context without guessing.
+  result.riskReasons = riskResult.reasons || [];
+  result.recommendation = riskResult.recommendation || null;
+
   return result;
 }
 

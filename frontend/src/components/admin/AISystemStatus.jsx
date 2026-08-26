@@ -17,7 +17,7 @@ function AISystemStatus({ agents = [] }) {
         <h3 className="text-base font-semibold text-text-dark">AI System Status</h3>
       </div>
       <p className="text-xs text-text-muted mb-4">
-        Demo system status. Live agent health will be connected during backend/AI integration.
+        Five coordination agents run server-side. Status reflects actual backend health.
       </p>
 
       <div className="space-y-3">

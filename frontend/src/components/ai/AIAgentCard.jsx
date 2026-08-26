@@ -2,6 +2,8 @@ import Badge from '../ui/Badge'
 
 const statusVariant = {
   COMPLETED: 'success',
+  ERROR: 'error',
+  PENDING: 'neutral',
   CURRENT: 'primary',
   MONITORING: 'info',
   UPCOMING: 'neutral',

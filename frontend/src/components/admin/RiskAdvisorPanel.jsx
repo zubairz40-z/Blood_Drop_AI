@@ -1,4 +1,4 @@
-import { ShieldAlert, MapPin } from 'lucide-react'
+import { ShieldAlert, MapPin, CheckCircle } from 'lucide-react'
 import Card from '../ui/Card'
 import Badge from '../ui/Badge'
 
@@ -21,23 +21,34 @@ function RiskAdvisorPanel({ alerts = [] }) {
       <div className="flex items-center gap-2 mb-4">
         <ShieldAlert className="w-5 h-5 text-brand" />
         <h3 className="text-base font-semibold text-text-dark">Risk Advisor</h3>
-        <span className="text-xs text-text-muted ml-auto">{alerts.length} alert{alerts.length !== 1 ? 's' : ''}</span>
+        <span className="text-xs text-text-muted ml-auto">
+          {alerts.length} alert{alerts.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
       {sorted.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-sm text-text-muted">No active risk alerts.</p>
+        <div className="text-center py-10">
+          <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
+          <p className="text-sm font-medium text-text-dark">No risk alerts</p>
+          <p className="text-xs text-text-muted mt-1">
+            All monitored requests are within normal operational parameters.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
           {sorted.map((alert) => (
             <div
               key={alert.id}
-              className="p-3 bg-surface-soft rounded-xl border border-border"
+              className={`p-3 rounded-xl border ${
+                alert.level === 'CRITICAL'
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-surface-soft border-border'
+              }`}
             >
               <div className="flex items-center justify-between mb-1.5">
                 <Badge variant={levelVariant[alert.level] || 'neutral'}>
-                  {alert.level} {alert.riskScore != null ? `(score ${alert.riskScore})` : ''}
+                  {alert.level}
+                  {alert.riskScore != null ? ` (score ${alert.riskScore})` : ''}
                 </Badge>
                 <div className="flex items-center gap-2">
                   {alert.urgency && (
