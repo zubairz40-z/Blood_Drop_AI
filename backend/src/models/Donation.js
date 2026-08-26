@@ -66,6 +66,7 @@ const donationSchema = new mongoose.Schema(
 
     cancelledAt: { type: Date },
     cancellationReason: { type: String, trim: true, maxlength: 300 },
+    overrideReason: { type: String, trim: true, maxlength: 300 },
   },
   { timestamps: true }
 );
