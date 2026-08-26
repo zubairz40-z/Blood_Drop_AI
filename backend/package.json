@@ -11,7 +11,9 @@
     "seed:demo:clear": "node scripts/clearDemoData.js",
     "seed:bangladesh": "node scripts/seed-bangladesh.js",
     "seed:bangladesh:clear": "node scripts/clearBangladeshSeed.js",
-    "check:geo": "node scripts/check-seed-geo.js"
+    "check:geo": "node scripts/check-seed-geo.js",
+    "demo:accounts": "node scripts/create-demo-accounts.js",
+    "demo:accounts:report": "node scripts/demo-accounts-report.js"
   },
   "keywords": [],
   "author": "",

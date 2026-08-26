@@ -64,3 +64,22 @@ export function isWithinBangladesh(lat, lng) {
 
 /** Default center: Dhaka, Bangladesh */
 export const DHAKA_CENTER = { lat: 23.8103, lng: 90.4125 }
+
+/**
+ * Converts any supported coordinate format to [lng, lat] for MapLibre.
+ * MapLibre uses the same order as GeoJSON: longitude first.
+ */
+export function toMapLibreLngLat(input) {
+  const c = normalizeCoordinates(input)
+  if (!c) return null
+  return [c.lng, c.lat]
+}
+
+/**
+ * Converts any supported coordinate format to [lat, lng] for legacy use.
+ */
+export function toLeafletLatLng(input) {
+  const c = normalizeCoordinates(input)
+  if (!c) return null
+  return [c.lat, c.lng]
+}

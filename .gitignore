@@ -14,4 +14,8 @@ serviceAccountKey.json
 
 .env.*
 !.env.example
+!.demo-hospital-credentials.example.json
 **/serviceAccountKey.json
+
+# Demo credentials — contains passwords, NEVER commit
+**/.demo-hospital-credentials.json
