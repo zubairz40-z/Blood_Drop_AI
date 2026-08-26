@@ -93,6 +93,13 @@ const bloodRequestSchema = new mongoose.Schema(
     cancelledAt: { type: Date },
     cancellationReason: { type: String, trim: true },
 
+    // The donor who accepted. Cleared if they withdraw or don't arrive.
+    matchedDonor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+    },
+    matchedAt: { type: Date },
     fulfilledAt: { type: Date },
 
     // Append-only history of every status change

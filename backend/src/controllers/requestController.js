@@ -336,6 +336,88 @@ async function rejectRequest(req, res, next) {
   }
 }
 
+/** POST /api/requests/:id/matching — hospital kicks off donor matching */
+async function startMatching(req, res, next) {
+  try {
+    const matchingService = require("../services/matchingService");
+    const responseService = require("../services/responseService");
+    const matchingAgent = require("../agents/donorMatchingAgent");
+
+    const candidateSet = await matchingService.findCandidates(req.params.id);
+
+    if (candidateSet.candidates.length === 0) {
+      return res.status(409).json({
+        success: false,
+        message: "No eligible donors were found within the search radius.",
+      });
+    }
+
+    const selection = await matchingAgent.selectDonors(req.params.id, {
+      candidateSet,
+    });
+
+    const result = await responseService.contactNextDonor({
+      requestId: req.params.id,
+      contactOrder: selection.contactOrder,
+      wave: 1,
+      actorId: req.currentUser._id,
+    });
+
+    res.json({ success: true, selection, contact: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** POST /api/requests/:id/respond — donor accepts or declines */
+async function respondToRequest(req, res, next) {
+  try {
+    const responseService = require("../services/responseService");
+    const matchingService = require("../services/matchingService");
+    const matchingAgent = require("../agents/donorMatchingAgent");
+
+    const { response } = req.body;
+
+    if (!["ACCEPT", "DECLINE"].includes(response)) {
+      return res.status(400).json({
+        success: false,
+        message: "Response must be ACCEPT or DECLINE.",
+      });
+    }
+
+    if (response === "ACCEPT") {
+      const request = await responseService.acceptMatch({
+        requestId: req.params.id,
+        donorUserId: req.currentUser._id,
+      });
+      return res.json({ success: true, request });
+    }
+
+    // On decline, recompute the contact order so the next donor is current
+    let contactOrder = [];
+    try {
+      const candidateSet = await matchingService.findCandidates(req.params.id);
+      const selection = await matchingAgent.selectDonors(req.params.id, {
+        candidateSet,
+      });
+      contactOrder = selection.contactOrder;
+    } catch {
+      // Matching may legitimately fail here (no candidates left); the decline
+      // itself must still be recorded.
+    }
+
+    const result = await responseService.declineMatch({
+      requestId: req.params.id,
+      donorUserId: req.currentUser._id,
+      contactOrder,
+    });
+
+    res.json({ success: true, result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createRequest,
   getMyRequests,
@@ -344,4 +426,6 @@ module.exports = {
   cancelRequest,
   verifyRequest,
   rejectRequest,
+  startMatching,
+  respondToRequest,
 };

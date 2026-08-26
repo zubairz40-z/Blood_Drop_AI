@@ -19,7 +19,10 @@ const ALLOWED_TRANSITIONS = {
   PENDING_VERIFICATION: [STATUS.VERIFIED, STATUS.REJECTED, STATUS.CANCELLED, STATUS.EXPIRED],
   VERIFIED: [STATUS.MATCHING, STATUS.CANCELLED, STATUS.EXPIRED],
   MATCHING: [STATUS.MATCHED, STATUS.CANCELLED, STATUS.EXPIRED],
-  MATCHED: [STATUS.FULFILLED, STATUS.CANCELLED],
+  // MATCHING is reachable again so a no-show or late withdrawal can return
+  // the request to the pool rather than stranding it. statusHistory records
+  // the round trip, so the audit trail stays honest.
+  MATCHED: [STATUS.MATCHING, STATUS.FULFILLED, STATUS.CANCELLED],
   FULFILLED: [],
   REJECTED: [],
   CANCELLED: [],
