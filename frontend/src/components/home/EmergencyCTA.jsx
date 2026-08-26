@@ -39,7 +39,7 @@ function EmergencyCTA() {
               <p className="text-white/80 mb-8 max-w-lg mx-auto">
                 Start a blood request and let BloodDrop AI coordinate compatible donors in your area.
               </p>
-              <Button type="button" variant="primary" size="lg" onClick={handleRequestBlood} className="bg-white text-blood hover:bg-white/90 border-0 shadow-lg">
+              <Button type="button" variant="primary" size="lg" onClick={handleRequestBlood} className="bg-pink-100 text-blood-dark hover:bg-pink-200 border-0 shadow-lg font-semibold">
                 Request Blood Now
               </Button>
             </div>
