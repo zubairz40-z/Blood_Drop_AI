@@ -357,12 +357,41 @@ async function coordinateRealRequest({ requestId }) {
   result.riskReasons = riskResult.reasons || [];
   result.recommendation = riskResult.recommendation || null;
 
-  // Email delivery status — checks whether SMTP is configured
-  const emailService = require("./emailService");
-  try {
-    const transport = emailService.getTransporter();
-    result.emailStatus = transport ? "CONFIGURED" : "NOT_CONFIGURED";
-  } catch {
+  // 7. Actually contact the primary donor when the AI recommends it
+  //    and the request is still VERIFIED (not yet in MATCHING).
+  //    This creates the MATCH_FOUND notification and sends the email.
+  const responseService = require("./responseService");
+  if (result.nextAction === "CONTACT_PRIMARY_DONOR" && request.status === "VERIFIED") {
+    const contactOrder = (selection && selection.contactOrder) || [];
+    if (contactOrder.length > 0) {
+      try {
+        const contactResult = await responseService.contactNextDonor({
+          requestId: String(request._id),
+          contactOrder,
+          wave: 1,
+          actorId: request.hospital,
+        });
+        result.contactResult = contactResult;
+        result.emailStatus = contactResult.emailStatus || "NOT_CONFIGURED";
+      } catch {
+        // If contact fails, the AI recommendation is still valid —
+        // the hospital can retry via the hospital dashboard.
+        result.emailStatus = "FAILED";
+      }
+    } else {
+      result.emailStatus = "NOT_CONFIGURED";
+    }
+  } else if (result.nextAction === "CONTACT_PRIMARY_DONOR" && request.status === "MATCHING") {
+    // Already in MATCHING — check SMTP config only (donor already contacted)
+    const emailService = require("./emailService");
+    try {
+      const transport = emailService.getTransporter();
+      result.emailStatus = transport ? "SENT" : "NOT_CONFIGURED";
+    } catch {
+      result.emailStatus = "NOT_CONFIGURED";
+    }
+  } else {
+    // No donor to contact (NO_ELIGIBLE_CANDIDATES, EXPAND_SEARCH, etc.)
     result.emailStatus = "NOT_CONFIGURED";
   }
 

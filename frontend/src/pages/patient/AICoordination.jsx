@@ -281,11 +281,17 @@ function AICoordination() {
       }
     : null
 
+  const emailLabel = {
+    SENT: 'Email sent',
+    NOT_CONFIGURED: 'Email not configured',
+    FAILED: 'Email failed',
+    CONFIGURED: 'Email not configured',
+  }
   const notificationCard = {
     sentStatus: result.nextAction === 'CONTACT_PRIMARY_DONOR' ? 'SENT' : 'PENDING',
     responseStatus: actionText,
     wave: selection.wave || null,
-    emailStatus: result.emailStatus === 'NOT_CONFIGURED' ? 'Email not configured' : (result.emailStatus === 'CONFIGURED' ? 'Email sent' : 'Email not configured'),
+    emailStatus: emailLabel[result.emailStatus] || 'Email not configured',
   }
 
   return (

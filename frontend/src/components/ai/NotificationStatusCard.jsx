@@ -36,7 +36,7 @@ function NotificationStatusCard({ notification }) {
         {notification.emailStatus && (
           <div className="flex items-center justify-between p-3 bg-surface-soft rounded-xl border border-border">
             <span className="text-sm text-text-dark">Email</span>
-            <Badge variant={notification.emailStatus === 'Sent' ? 'success' : notification.emailStatus === 'Not configured' ? 'neutral' : 'warning'}>{notification.emailStatus}</Badge>
+            <Badge variant={notification.emailStatus === 'Email sent' ? 'success' : notification.emailStatus === 'Email failed' ? 'warning' : 'neutral'}>{notification.emailStatus}</Badge>
           </div>
         )}
 
