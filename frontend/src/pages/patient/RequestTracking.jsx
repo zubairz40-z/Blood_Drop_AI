@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { SearchX, Pencil, XCircle } from 'lucide-react'
+import { SearchX, Pencil, XCircle, BrainCircuit } from 'lucide-react'
 import PageHeader from '../../components/common/PageHeader'
 import Card from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
@@ -193,6 +193,9 @@ function RequestTracking() {
           </Button>
           <Button variant="danger" size="sm" icon={XCircle} onClick={() => setCancelOpen(true)}>
             Cancel Request
+          </Button>
+          <Button variant="secondary" size="sm" icon={BrainCircuit} onClick={() => navigate(`/patient/requests/${requestId}/coordination`)}>
+            View AI Coordination
           </Button>
         </div>
       )}
