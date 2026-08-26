@@ -10,6 +10,8 @@ const {
   cancelRequest,
   verifyRequest,
   rejectRequest,
+  respondToRequest,
+  startMatching,
 } = require("../controllers/requestController");
 
 router.use(verifyFirebaseToken);
@@ -25,5 +27,8 @@ router.post("/:id/cancel", authorizeRoles("patient", "hospital"), cancelRequest)
 
 router.post("/:id/verify", authorizeRoles("hospital"), verifyRequest);
 router.post("/:id/reject", authorizeRoles("hospital"), rejectRequest);
+
+router.post("/:id/matching", authorizeRoles("hospital", "admin"), startMatching);
+router.post("/:id/respond", authorizeRoles("donor"), respondToRequest);
 
 module.exports = router;

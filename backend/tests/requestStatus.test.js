@@ -34,11 +34,16 @@ describe("canTransition", () => {
     assert.ok(!canTransition(STATUS.VERIFIED, STATUS.VERIFIED));
   });
 
-  test("matching can only be reached from verified", () => {
-    const sources = STATUS_CODES.filter((s) => canTransition(s, STATUS.MATCHING));
-    assert.deepStrictEqual(sources, [STATUS.VERIFIED]);
+  test("matching is reachable from verified and from matched", () => {
+    const sources = STATUS_CODES.filter((s) =>
+      ALLOWED_TRANSITIONS[s].includes(STATUS.MATCHING)
+    );
+    // VERIFIED is the normal entry. MATCHED returns here when a donor
+    // withdraws or fails to arrive, so the request rejoins the pool rather
+    // than being stranded with no legal move except cancellation.
+    assert.deepStrictEqual(sources.sort(), ["MATCHED", "VERIFIED"]);
   });
-});
+    });
 
 describe("isTerminal", () => {
   test("fulfilled is terminal", () => {

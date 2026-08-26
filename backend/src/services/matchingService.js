@@ -1,6 +1,6 @@
 const DonorProfile = require("../models/DonorProfile");
 const BloodRequest = require("../models/BloodRequest");
-const { STATUS } = require("../utils/requestStatus");
+const { STATUS, assertTransition } = require("../utils/requestStatus");
 const {
   isCompatible,
   compatibleDonorGroups,
@@ -210,10 +210,59 @@ async function explainDonor(requestId, donorUserId, asOf = new Date()) {
   };
 }
 
+/**
+ * Moves a VERIFIED request into MATCHING and records who is being contacted.
+ *
+ * Separate from findCandidates because finding candidates is a read — it can
+ * run repeatedly with no side effects — whereas this commits the request to
+ * the matching process.
+ */
+async function beginMatching(requestId, actorId) {
+  const request = await BloodRequest.findById(requestId);
+  if (!request) fail("Request not found.", 404);
+
+  if (request.status === STATUS.MATCHING) return request;
+
+  assertTransition(request.status, STATUS.MATCHING);
+  request.applyStatus(STATUS.MATCHING, actorId, "Donor matching started");
+  return request.save();
+}
+
+/**
+ * Links an accepting donor and moves the request to MATCHED.
+ */
+async function assignDonor(requestId, donorUserId, actorId) {
+  const request = await BloodRequest.findById(requestId);
+  if (!request) fail("Request not found.", 404);
+
+  assertTransition(request.status, STATUS.MATCHED);
+  request.matchedDonor = donorUserId;
+  request.matchedAt = new Date();
+  request.applyStatus(STATUS.MATCHED, actorId, "Donor accepted");
+  return request.save();
+}
+
+/**
+ * Returns a MATCHED request to the pool — a donor withdrew or never arrived.
+ */
+async function releaseDonor(requestId, actorId, note) {
+  const request = await BloodRequest.findById(requestId);
+  if (!request) fail("Request not found.", 404);
+
+  assertTransition(request.status, STATUS.MATCHING);
+  request.matchedDonor = undefined;
+  request.matchedAt = undefined;
+  request.applyStatus(STATUS.MATCHING, actorId, note || "Donor released");
+  return request.save();
+}
+
 module.exports = {
   findCandidates,
   explainDonor,
   scoreDistance,
   scoreHistory,
+  beginMatching,
+  assignDonor,
+  releaseDonor,
   WEIGHTS,
 };
