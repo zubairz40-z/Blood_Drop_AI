@@ -48,7 +48,14 @@ function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      <Route path="/donor" element={<DashboardLayout role="donor" />}>
+      <Route
+        path="/donor"
+        element={
+          <ProtectedRoute role="donor">
+            <DashboardLayout role="donor" />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<DonorDashboard />} />
         <Route path="profile" element={<DonorProfile />} />
         <Route path="requests" element={<DonorEmergencyRequests />} />
@@ -127,15 +134,6 @@ function AppRoutes() {
         <Route path="funding" element={<AdminFunding />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="*" element={<NotFound />} />
-      </Route>
-
-      <Route
-        path="/donor"
-        element={
-          <ProtectedRoute role="donor">
-            <DashboardLayout role="donor" />
-          </ProtectedRoute>
-        } >
       </Route>
 
       <Route path="*" element={<NotFound />} />

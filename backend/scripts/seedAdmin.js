@@ -4,8 +4,13 @@ const User = require("../src/models/User");
 const { getAuth } = require("../src/config/firebase");
 
 const ADMIN_EMAIL = "admin@blooddrop.local";
-const ADMIN_PASSWORD = "ChangeThisNow123";
 const ADMIN_NAME = "System Admin";
+
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error("SEED_ADMIN_PASSWORD is not set in .env");
+  process.exit(1);
+}
 
 async function run() {
   await mongoose.connect(process.env.MONGO_URI);

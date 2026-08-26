@@ -7,7 +7,12 @@ const HOSPITAL_EMAIL = `hospital-${Date.now()}@test.com`;
 const HOSPITAL_PASSWORD = "Test1234";
 
 const ADMIN_EMAIL = "admin@blooddrop.local";
-const ADMIN_PASSWORD = "ChangeThisNow123";
+
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error("TEST_ADMIN_PASSWORD is not set in .env");
+  process.exit(1);
+}
 
 async function firebase(action, email, password) {
   const url = `https://identitytoolkit.googleapis.com/v1/accounts:${action}?key=${API_KEY}`;
