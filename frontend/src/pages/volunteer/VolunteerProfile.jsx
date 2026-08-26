@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import PageHeader from '../../components/common/PageHeader'
@@ -8,15 +8,12 @@ import Button from '../../components/ui/Button'
 import Alert from '../../components/ui/Alert'
 import Avatar from '../../components/ui/Avatar'
 import Input from '../../components/ui/Input'
-import { demoVolunteerProfile } from '../../data/demoVolunteerPages'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { fetchCurrentUser } from '../../api/authApi'
+import { updateCurrentUser } from '../../api/userApi'
 
-function createInitialForm() {
-  return {
-    name: demoVolunteerProfile.name,
-    email: demoVolunteerProfile.email,
-    phone: demoVolunteerProfile.phone,
-    location: demoVolunteerProfile.location,
-  }
+function createEmptyForm() {
+  return { name: '', email: '', phone: '', location: '' }
 }
 
 function validate(form) {
@@ -29,10 +26,36 @@ function validate(form) {
 
 function VolunteerProfile() {
   const navigate = useNavigate()
-  const [form, setForm] = useState(createInitialForm)
-  const [savedForm, setSavedForm] = useState(createInitialForm)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [loadError, setLoadError] = useState(null)
+  const [form, setForm] = useState(createEmptyForm)
+  const [savedForm, setSavedForm] = useState(createEmptyForm)
   const [errors, setErrors] = useState({})
   const [saveMessage, setSaveMessage] = useState(null)
+  const [saveError, setSaveError] = useState(null)
+
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        setLoading(true)
+        const user = await fetchCurrentUser()
+        const formValues = {
+          name: user.name || '',
+          email: user.email || '',
+          phone: user.phone || '',
+          location: user.location || '',
+        }
+        setForm(formValues)
+        setSavedForm(formValues)
+      } catch (err) {
+        setLoadError(err.response?.data?.message || 'Failed to load profile.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProfile()
+  }, [])
 
   const hasChanges = useMemo(
     () => JSON.stringify(form) !== JSON.stringify(savedForm),
@@ -49,7 +72,7 @@ function VolunteerProfile() {
     })
   }, [])
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     const validationErrors = validate(form)
     if (Object.keys(validationErrors).length > 0) {
@@ -57,14 +80,55 @@ function VolunteerProfile() {
       return
     }
     setErrors({})
-    setSavedForm({ ...form })
-    setSaveMessage('Profile changes are ready. Permanent saving will be connected with the backend later.')
+    setSaveError(null)
+    try {
+      setSaving(true)
+      const updated = await updateCurrentUser({
+        name: form.name,
+        phone: form.phone,
+        location: form.location,
+      })
+      const updatedForm = {
+        name: updated.name || form.name,
+        email: updated.email || form.email,
+        phone: updated.phone || form.phone,
+        location: updated.location || form.location,
+      }
+      setForm(updatedForm)
+      setSavedForm(updatedForm)
+      setSaveMessage('Profile updated successfully.')
+    } catch (err) {
+      setSaveError(err.response?.data?.message || 'Failed to save profile.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function handleCancel() {
     setForm({ ...savedForm })
     setErrors({})
     setSaveMessage(null)
+    setSaveError(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <LoadingSpinner label="Loading profile..." />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Volunteer Profile"
+          description="Keep your contact information up to date for coordination."
+        />
+        <Alert variant="error">{loadError}</Alert>
+      </div>
+    )
   }
 
   return (
@@ -96,6 +160,12 @@ function VolunteerProfile() {
         </Alert>
       )}
 
+      {saveError && (
+        <Alert variant="error" onDismiss={() => setSaveError(null)}>
+          {saveError}
+        </Alert>
+      )}
+
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
@@ -104,11 +174,6 @@ function VolunteerProfile() {
                 <Avatar name={form.name} size="xl" />
                 <h3 className="text-lg font-semibold text-text-dark mt-4">{form.name}</h3>
                 <p className="text-sm text-text-muted mt-0.5">Volunteer profile</p>
-                <div className="mt-3">
-                  <Badge variant={demoVolunteerProfile.availability ? 'success' : 'warning'}>
-                    {demoVolunteerProfile.availability ? 'Available' : 'Busy'}
-                  </Badge>
-                </div>
               </div>
             </Card>
           </div>
@@ -162,11 +227,11 @@ function VolunteerProfile() {
                 type="button"
                 variant="ghost"
                 onClick={handleCancel}
-                disabled={!hasChanges}
+                disabled={!hasChanges || saving}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!hasChanges}>
+              <Button type="submit" disabled={!hasChanges} loading={saving}>
                 Save Changes
               </Button>
             </div>

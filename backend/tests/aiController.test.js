@@ -1,196 +1,182 @@
-const { test, describe } = require("node:test");
+const { test, describe, mock } = require("node:test");
 const assert = require("node:assert");
-const { coordinateBloodRequest } = require("../src/controllers/aiController");
 
 // ---------------------------------------------------------------------------
-// Helper — builds a minimal mock req/res/next for testing Express handlers.
+// Mock the BloodRequest model and orchestrator before importing controller
 // ---------------------------------------------------------------------------
 
-function makeReq(body = {}) {
-  return { body };
+const REQUEST_ID = "6650f1a2b2c3d4e5f6a7b8c9";
+const PATIENT_ID = "patient-001";
+const OTHER_PATIENT_ID = "patient-002";
+const HOSPITAL_ID = "hospital-001";
+
+function makeCoordinationResult(requestId) {
+  return {
+    requestId,
+    risk: "LOW",
+    riskScore: 0,
+    recommendedDonor: null,
+    backupDonors: [],
+    nextAction: "EXPAND_SEARCH",
+    explanation: "No candidates found.",
+    agentStatus: { matching: "COMPLETED", eligibility: "COMPLETED", geo: "COMPLETED", risk: "COMPLETED" },
+  };
 }
+
+// Simulate the BloodRequest collection
+const fakeRequests = {
+  [REQUEST_ID]: { _id: REQUEST_ID, patient: PATIENT_ID, hospital: HOSPITAL_ID },
+};
+
+// Mock modules
+const BloodRequest = {
+  findById: (id) => ({
+    select: () => ({
+      lean: () => Promise.resolve(fakeRequests[id] || null),
+    }),
+  }),
+};
+
+const orchestratorMock = {
+  coordinateRealRequest: async ({ requestId }) => makeCoordinationResult(requestId),
+};
+
+// Inject mocks into require cache
+const brPath = require.resolve("../src/models/BloodRequest");
+const ctrlPath = require.resolve("../src/controllers/aiController");
+const orchPath = require.resolve("../src/services/aiOrchestrator");
+
+const origBR = require.cache[brPath];
+const origCtrl = require.cache[ctrlPath];
+const origOrch = require.cache[orchPath];
+
+require.cache[brPath] = { id: brPath, filename: brPath, loaded: true, exports: BloodRequest };
+require.cache[orchPath] = { id: orchPath, filename: orchPath, loaded: true, exports: orchestratorMock };
+delete require.cache[ctrlPath];
+
+const { coordinateBloodRequest } = require(ctrlPath);
+
+function restore() {
+  if (origBR) require.cache[brPath] = origBR; else delete require.cache[brPath];
+  if (origOrch) require.cache[orchPath] = origOrch; else delete require.cache[orchPath];
+  if (origCtrl) require.cache[ctrlPath] = origCtrl; else delete require.cache[ctrlPath];
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function makeRes() {
   const res = { _status: null, _json: null };
-  res.status = function (code) {
-    res._status = code;
-    return res;
-  };
-  res.json = function (obj) {
-    res._json = obj;
-    return res;
-  };
+  res.status = function (code) { res._status = code; return res; };
+  res.json = function (obj) { res._json = obj; return res; };
   return res;
 }
 
-function makeNext() {
+function makeNext(errors) {
   return function next(err) {
-    if (err) throw err;
+    if (err) errors.push(err);
   };
 }
-
-// ---------------------------------------------------------------------------
-// Shared fixtures
-// ---------------------------------------------------------------------------
-
-const VALID_PAYLOAD = {
-  request: {
-    id: "demo-request-001",
-    urgency: "URGENT",
-    bloodGroup: "O+",
-    component: "WHOLE_BLOOD",
-    unitsRequired: 2,
-  },
-  matchingResult: {
-    requestId: "demo-request-001",
-    candidates: [
-      {
-        donorId: "demo-donor-001",
-        eligible: true,
-        available: true,
-        score: 92,
-        reasons: ["Compatible", "Nearby"],
-        distanceKm: 3.2,
-        etaMinutes: 14,
-      },
-      {
-        donorId: "demo-donor-002",
-        eligible: true,
-        available: true,
-        score: 84,
-        reasons: ["Compatible"],
-        distanceKm: 6.7,
-        etaMinutes: 23,
-      },
-    ],
-  },
-  eligibilityResult: {
-    eligibleDonorIds: ["demo-donor-001", "demo-donor-002"],
-  },
-  geoResult: {
-    rankedDonorIds: ["demo-donor-001", "demo-donor-002"],
-  },
-  riskContext: {
-    requestCountRecent: 0,
-    emergencyRequestsRecent: 0,
-    cancelledRequestsRecent: 0,
-    donorActivityCount: 0,
-    emergencyResponseMinutes: 0,
-    bloodGroupDemandCount: 0,
-  },
-};
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe("AI Controller — coordinateBloodRequest", () => {
-  test("valid payload returns 200 with coordination result", async () => {
-    const req = makeReq(VALID_PAYLOAD);
+  test("missing requestId returns 400", async () => {
+    const req = { body: {}, currentUser: { _id: HOSPITAL_ID, role: "hospital" } };
     const res = makeRes();
-    await coordinateBloodRequest(req, res, makeNext());
+    await coordinateBloodRequest(req, res, makeNext([]));
+
+    assert.equal(res._status, 400);
+    assert.equal(res._json.success, false);
+    assert.ok(res._json.message.includes("requestId"));
+  });
+
+  test("hospital can coordinate any request", async () => {
+    const req = { body: { requestId: REQUEST_ID }, currentUser: { _id: HOSPITAL_ID, role: "hospital" } };
+    const res = makeRes();
+    await coordinateBloodRequest(req, res, makeNext([]));
 
     assert.equal(res._status, 200);
     assert.equal(res._json.success, true);
-    assert.ok(res._json.result, "result should be present");
+    assert.equal(res._json.result.requestId, REQUEST_ID);
   });
 
-  test("output matches expected coordination contract", async () => {
-    const req = makeReq(VALID_PAYLOAD);
+  test("admin can coordinate any request", async () => {
+    const req = { body: { requestId: REQUEST_ID }, currentUser: { _id: "admin-001", role: "admin" } };
     const res = makeRes();
-    await coordinateBloodRequest(req, res, makeNext());
+    await coordinateBloodRequest(req, res, makeNext([]));
+
+    assert.equal(res._status, 200);
+    assert.equal(res._json.success, true);
+  });
+
+  test("patient can coordinate own request", async () => {
+    const req = { body: { requestId: REQUEST_ID }, currentUser: { _id: PATIENT_ID, role: "patient" } };
+    const res = makeRes();
+    await coordinateBloodRequest(req, res, makeNext([]));
+
+    assert.equal(res._status, 200);
+    assert.equal(res._json.success, true);
+  });
+
+  test("patient CANNOT coordinate another patient's request", async () => {
+    const req = { body: { requestId: REQUEST_ID }, currentUser: { _id: OTHER_PATIENT_ID, role: "patient" } };
+    const res = makeRes();
+    await coordinateBloodRequest(req, res, makeNext([]));
+
+    assert.equal(res._status, 403);
+    assert.equal(res._json.success, false);
+    assert.ok(res._json.message.includes("own"));
+  });
+
+  test("patient gets 404 for nonexistent request", async () => {
+    const req = { body: { requestId: "000000000000000000000000" }, currentUser: { _id: PATIENT_ID, role: "patient" } };
+    const res = makeRes();
+    await coordinateBloodRequest(req, res, makeNext([]));
+
+    assert.equal(res._status, 404);
+  });
+
+  test("empty body returns 400", async () => {
+    const req = { body: {}, currentUser: { _id: HOSPITAL_ID, role: "hospital" } };
+    const res = makeRes();
+    await coordinateBloodRequest(req, res, makeNext([]));
+
+    assert.equal(res._status, 400);
+  });
+
+  test("output has expected coordination contract", async () => {
+    const req = { body: { requestId: REQUEST_ID }, currentUser: { _id: HOSPITAL_ID, role: "hospital" } };
+    const res = makeRes();
+    await coordinateBloodRequest(req, res, makeNext([]));
 
     const r = res._json.result;
     assert.equal(typeof r.requestId, "string");
     assert.equal(typeof r.risk, "string");
     assert.equal(typeof r.riskScore, "number");
-    assert.ok(
-      r.recommendedDonor === null || typeof r.recommendedDonor === "string"
-    );
+    assert.ok(r.recommendedDonor === null || typeof r.recommendedDonor === "string");
     assert.ok(Array.isArray(r.backupDonors));
     assert.equal(typeof r.nextAction, "string");
     assert.equal(typeof r.explanation, "string");
   });
 
-  test("no candidates returns EXPAND_SEARCH", async () => {
-    const payload = {
-      ...VALID_PAYLOAD,
-      matchingResult: { requestId: "demo-request-001", candidates: [] },
-    };
-    const req = makeReq(payload);
-    const res = makeRes();
-    await coordinateBloodRequest(req, res, makeNext());
-
-    assert.equal(res._json.result.recommendedDonor, null);
-    assert.equal(res._json.result.nextAction, "EXPAND_SEARCH");
-  });
-
-  test("missing request returns 400", async () => {
-    const req = makeReq({ matchingResult: VALID_PAYLOAD.matchingResult });
-    const res = makeRes();
-    await coordinateBloodRequest(req, res, makeNext());
-
-    assert.equal(res._status, 400);
-    assert.equal(res._json.success, false);
-  });
-
-  test("request without id returns 400", async () => {
-    const req = makeReq({ request: { bloodGroup: "O+" } });
-    const res = makeRes();
-    await coordinateBloodRequest(req, res, makeNext());
-
-    assert.equal(res._status, 400);
-    assert.equal(res._json.success, false);
-  });
-
-  test("empty body returns 400", async () => {
-    const req = makeReq({});
-    const res = makeRes();
-    await coordinateBloodRequest(req, res, makeNext());
-
-    assert.equal(res._status, 400);
-  });
-
-  test("missing optional fields handled safely", async () => {
-    const req = makeReq({
-      request: VALID_PAYLOAD.request,
-    });
-    const res = makeRes();
-    await coordinateBloodRequest(req, res, makeNext());
-
-    assert.equal(res._status, 200);
-    assert.ok(res._json.result);
-  });
-
-  test("critical risk with candidates returns MANUAL_REVIEW_REQUIRED", async () => {
-    const payload = {
-      ...VALID_PAYLOAD,
-      riskContext: {
-        requestCountRecent: 25,
-        emergencyRequestsRecent: 6,
-        cancelledRequestsRecent: 7,
-        donorActivityCount: 31,
-        emergencyResponseMinutes: 61,
-        bloodGroupDemandCount: 9,
-      },
-    };
-    const req = makeReq(payload);
-    const res = makeRes();
-    await coordinateBloodRequest(req, res, makeNext());
-
-    assert.equal(res._json.result.risk, "CRITICAL");
-    assert.equal(res._json.result.nextAction, "MANUAL_REVIEW_REQUIRED");
-  });
-
   test("determinism — same input gives same output", async () => {
-    const req1 = makeReq(VALID_PAYLOAD);
+    const req1 = { body: { requestId: REQUEST_ID }, currentUser: { _id: HOSPITAL_ID, role: "hospital" } };
     const res1 = makeRes();
-    await coordinateBloodRequest(req1, res1, makeNext());
+    await coordinateBloodRequest(req1, res1, makeNext([]));
 
-    const req2 = makeReq(VALID_PAYLOAD);
+    const req2 = { body: { requestId: REQUEST_ID }, currentUser: { _id: HOSPITAL_ID, role: "hospital" } };
     const res2 = makeRes();
-    await coordinateBloodRequest(req2, res2, makeNext());
+    await coordinateBloodRequest(req2, res2, makeNext([]));
 
     assert.deepEqual(res1._json.result, res2._json.result);
+  });
+
+  // Restore after all tests
+  test("cleanup", () => {
+    restore();
   });
 });

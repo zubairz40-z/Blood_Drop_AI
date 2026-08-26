@@ -19,8 +19,3 @@ export async function setDonorAvailability(isAvailable) {
   const { data } = await api.patch('/api/donors/availability', { isAvailable })
   return data.isAvailable
 }
-
-export async function fetchDonationHistory() {
-  const { data } = await api.get('/api/donors/history')
-  return data
-}

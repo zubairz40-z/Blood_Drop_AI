@@ -2,6 +2,7 @@ const BloodRequest = require("../models/BloodRequest");
 const User = require("../models/User");
 const { COMPONENT_CODES } = require("../utils/donationRules");
 const { STATUS, assertTransition, isTerminal } = require("../utils/requestStatus");
+const notificationService = require("../services/notificationService");
 
 /** POST /api/requests — patients file their own; hospitals file emergencies */
 async function createRequest(req, res, next) {
@@ -308,6 +309,22 @@ async function cancelRequest(req, res, next) {
     request.cancellationReason = req.body.reason || "Cancelled by patient";
     await request.save();
 
+    const patientToNotify = request.patient || request.createdBy;
+    if (patientToNotify) {
+      await notificationService.notifyRequestCancelled({
+        userId: patientToNotify,
+        request,
+        reason: request.cancellationReason,
+      });
+    }
+    if (request.matchedDonor) {
+      await notificationService.notifyRequestCancelled({
+        userId: request.matchedDonor,
+        request,
+        reason: request.cancellationReason,
+      });
+    }
+
     res.json({ success: true, request });
   } catch (err) {
     if (err.status === 409) {
@@ -342,6 +359,11 @@ async function verifyRequest(req, res, next) {
     request.verifiedBy = req.currentUser._id;
     request.verifiedAt = new Date();
     await request.save();
+
+    const patientToNotify = request.patient || request.createdBy;
+    if (patientToNotify) {
+      await notificationService.notifyRequestVerified({ userId: patientToNotify, request });
+    }
 
     res.json({ success: true, request });
   } catch (err) {

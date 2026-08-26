@@ -6,6 +6,8 @@ const {
   checkEligibility,
   calculateNextEligibleAt,
 } = require("../utils/donationRules");
+const notificationService = require("./notificationService");
+const inventoryService = require("./inventoryService");
 
 const { DONATION_STATUS } = Donation;
 
@@ -155,8 +157,18 @@ async function confirmDonation({ donationId, hospitalId }) {
     await profile.save();
   }
 
-  // --- 3. The request's fulfilled count, and closure if complete ---
+  // --- 3. Auto-update hospital inventory ---
   const request = await BloodRequest.findById(donation.request);
+  if (request) {
+    await inventoryService.adjustUnits(
+      String(request.hospital),
+      request.bloodGroup,
+      donation.component,
+      +donation.units
+    );
+  }
+
+  // --- 4. The request's fulfilled count, and closure if complete ---
   if (request) {
     request.unitsFulfilled = (request.unitsFulfilled || 0) + donation.units;
 
@@ -171,6 +183,15 @@ async function confirmDonation({ donationId, hospitalId }) {
     }
 
     await request.save();
+
+    await notificationService.notifyDonationConfirmed({ donorUserId: donation.donor, donation });
+
+    if (complete && canTransition(request.status, STATUS.FULFILLED)) {
+      const patientToNotify = request.patient || request.createdBy;
+      if (patientToNotify) {
+        await notificationService.notifyRequestFulfilled({ userId: patientToNotify, request });
+      }
+    }
   }
 
   return donation;

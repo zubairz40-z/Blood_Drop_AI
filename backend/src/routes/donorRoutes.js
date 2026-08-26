@@ -7,7 +7,6 @@ const {
   getProfile,
   updateProfile,
   updateAvailability,
-  getHistory,
 } = require("../controllers/donorController");
 
 // Every donor route requires an authenticated, active donor
@@ -17,6 +16,5 @@ router.post("/profile", createProfile);
 router.get("/profile", getProfile);
 router.patch("/profile", updateProfile);
 router.patch("/availability", updateAvailability);
-router.get("/history", getHistory);
 
 module.exports = router;

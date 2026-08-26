@@ -213,28 +213,9 @@ async function updateAvailability(req, res, next) {
   }
 }
 
-/** GET /api/donors/history — no Donation model yet, so this is a stub */
-async function getHistory(req, res, next) {
-  try {
-    const profile = await DonorProfile.findOne({ user: req.currentUser._id });
-    if (!profile) {
-      return res.status(404).json({ success: false, message: "No donor profile yet." });
-    }
-
-    res.json({
-      success: true,
-      totalDonations: profile.totalDonations,
-      donations: [], // populated once the Donation model exists
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
 module.exports = {
   createProfile,
   getProfile,
   updateProfile,
   updateAvailability,
-  getHistory,
 };

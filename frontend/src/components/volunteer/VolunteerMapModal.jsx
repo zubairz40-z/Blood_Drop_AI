@@ -1,14 +1,15 @@
 import { MapPin } from 'lucide-react'
 import Modal from '../ui/Modal'
 import Badge from '../ui/Badge'
-import { demoVolunteerMapData } from '../../data/demoMapData'
 import MapMarker from '../maps/MapMarker'
 import MapLegend from '../maps/MapLegend'
 
-function VolunteerMapModal({ open, onClose }) {
-  const data = demoVolunteerMapData
+function VolunteerMapModal({ open, onClose, task }) {
+  if (!task) return null
 
-  if (!data) return null
+  const hospitalName = task.hospital?.name || 'Hospital'
+  const hospitalAddress = task.hospital?.address || ''
+  const urgency = task.urgency || 'ROUTINE'
 
   return (
     <Modal open={open} onClose={onClose} title="Coordination Map" size="lg">
@@ -28,22 +29,22 @@ function VolunteerMapModal({ open, onClose }) {
           <line x1="10" y1="60" x2="90" y2="60" stroke="#d4d4d4" strokeWidth="0.5" />
           <line x1="35" y1="10" x2="35" y2="90" stroke="#d4d4d4" strokeWidth="0.5" />
           <line x1="65" y1="10" x2="65" y2="90" stroke="#d4d4d4" strokeWidth="0.5" />
-          <line x1={data.donor.x + '%'} y1={data.donor.y + '%'} x2={data.hospital.x + '%'} y2={data.hospital.y + '%'} stroke="#F72585" strokeWidth="0.8" strokeDasharray="3,2" opacity="0.5" />
+          <line x1="30%" y1="45%" x2="70%" y2="55%" stroke="#F72585" strokeWidth="0.8" strokeDasharray="3,2" opacity="0.5" />
         </svg>
 
         <MapMarker
-          x={data.donor.x}
-          y={data.donor.y}
+          x={30}
+          y={45}
           type="donor"
           label="Donor Area"
-          sublabel={data.donor.area}
+          sublabel={task.address || 'Approximate'}
         />
         <MapMarker
-          x={data.hospital.x}
-          y={data.hospital.y}
+          x={70}
+          y={55}
           type="hospital"
-          label={data.hospital.name}
-          sublabel={data.hospital.area}
+          label={hospitalName}
+          sublabel={hospitalAddress}
         />
       </div>
 
@@ -57,25 +58,25 @@ function VolunteerMapModal({ open, onClose }) {
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
             <span className="text-text-muted">Donor Area</span>
-            <p className="font-medium text-text-dark">{data.donor.area}</p>
+            <p className="font-medium text-text-dark">{task.address || 'Approximate'}</p>
           </div>
           <div>
             <span className="text-text-muted">Hospital</span>
-            <p className="font-medium text-text-dark">{data.hospital.name}</p>
+            <p className="font-medium text-text-dark">{hospitalName}</p>
           </div>
           <div>
-            <span className="text-text-muted">Distance</span>
-            <p className="font-medium text-text-dark">~{data.distance} km</p>
+            <span className="text-text-muted">Blood Group</span>
+            <p className="font-medium text-text-dark">{task.request?.bloodGroup || '-'}</p>
           </div>
           <div>
             <span className="text-text-muted">Emergency</span>
-            <Badge variant="error">{data.emergencyLevel}</Badge>
+            <Badge variant={urgency === 'EMERGENCY' ? 'error' : urgency === 'URGENT' ? 'warning' : 'info'}>{urgency}</Badge>
           </div>
         </div>
       </div>
 
       <p className="text-[10px] text-text-muted mt-3">
-        For privacy, donor locations are shown only as approximate coordination areas in this demo.
+        For privacy, donor locations are shown only as approximate coordination areas.
       </p>
     </Modal>
   )

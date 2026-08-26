@@ -1,25 +1,105 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Map } from 'lucide-react'
 import PageHeader from '../../components/common/PageHeader'
 import Badge from '../../components/ui/Badge'
 import Button from '../../components/ui/Button'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import Alert from '../../components/ui/Alert'
 import VolunteerStatusGrid from '../../components/volunteer/VolunteerStatusGrid'
 import AssignedEmergencyCard from '../../components/volunteer/AssignedEmergencyCard'
 import VolunteerDonorCard from '../../components/volunteer/VolunteerDonorCard'
 import VolunteerHospitalCard from '../../components/volunteer/VolunteerHospitalCard'
 import VolunteerActions from '../../components/volunteer/VolunteerActions'
 import VolunteerMapModal from '../../components/volunteer/VolunteerMapModal'
-import {
-  demoVolunteer,
-  demoAssignment,
-  demoDonor,
-  demoHospitalInfo,
-} from '../../data/demoVolunteerData'
+import { fetchVolunteerDashboard, fetchMyVolunteerTasks } from '../../api/volunteerApi'
 
 function VolunteerDashboard() {
-  const [status, setStatus] = useState(demoVolunteer.assistanceStatus)
+  const [stats, setStats] = useState({ assigned: 0, inProgress: 0, completed: 0, total: 0 })
+  const [activeTask, setActiveTask] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [mapOpen, setMapOpen] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true)
+        const [dashStats, myTasks] = await Promise.all([
+          fetchVolunteerDashboard(),
+          fetchMyVolunteerTasks(),
+        ])
+        setStats(dashStats)
+        // Find the first in-progress or assigned task to display as active
+        const current = myTasks.find(
+          (t) => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED'
+        )
+        setActiveTask(current || null)
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load dashboard data.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <LoadingSpinner label="Loading dashboard..." />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Volunteer Dashboard"
+          description="Assist donors and hospitals during active blood donation coordination."
+        />
+        <Alert variant="error">{error}</Alert>
+      </div>
+    )
+  }
+
+  const assistanceStatus = activeTask
+    ? activeTask.status.replace('_', ' ')
+    : 'No Active Task'
+
+  const emergencyLevel = activeTask
+    ? activeTask.urgency
+    : 'None'
+
+  const donor = activeTask?.donor
+    ? {
+        id: activeTask.donor._id || activeTask.donor.name || 'N/A',
+        bloodGroup: activeTask.request?.bloodGroup || 'N/A',
+        donationType: activeTask.request?.component || 'N/A',
+        availability: 'Assigned',
+      }
+    : null
+
+  const hospital = activeTask?.hospital
+    ? {
+        name: activeTask.hospital.name || 'N/A',
+        location: activeTask.hospital.address || 'N/A',
+        distance: '—',
+      }
+    : null
+
+  // Map to the shape AssignedEmergencyCard expects
+  const assignment = activeTask
+    ? {
+        requestId: activeTask._id,
+        bloodGroup: activeTask.request?.bloodGroup || 'N/A',
+        donationType: activeTask.request?.component || 'N/A',
+        units: activeTask.request?.unitsRequired || 1,
+        emergencyLevel: activeTask.urgency,
+        status: activeTask.status,
+      }
+    : null
 
   return (
     <motion.div
@@ -38,17 +118,17 @@ function VolunteerDashboard() {
             <Badge variant="role-volunteer">Volunteer</Badge>
           </div>
         </div>
-        <Badge variant="info" className="self-start">{status}</Badge>
+        <Badge variant="info" className="self-start">{assistanceStatus}</Badge>
       </div>
 
       <VolunteerStatusGrid
-        assignedTasks={demoVolunteer.assignedTasks}
-        activeEmergency={demoVolunteer.activeEmergency}
-        currentDistance={demoVolunteer.currentDistance}
-        assistanceStatus={status}
+        assignedTasks={stats.assigned + stats.inProgress}
+        activeEmergency={emergencyLevel}
+        currentDistance="—"
+        assistanceStatus={assistanceStatus}
       />
 
-      <AssignedEmergencyCard assignment={demoAssignment} />
+      <AssignedEmergencyCard assignment={assignment} />
 
       <div className="flex justify-end">
         <Button
@@ -62,13 +142,13 @@ function VolunteerDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <VolunteerDonorCard donor={demoDonor} />
-        <VolunteerHospitalCard hospital={demoHospitalInfo} />
+        <VolunteerDonorCard donor={donor} />
+        <VolunteerHospitalCard hospital={hospital} />
       </div>
 
-      <VolunteerActions status={status} onStatusChange={setStatus} />
+      <VolunteerActions status={assistanceStatus} onStatusChange={() => {}} />
 
-      <VolunteerMapModal open={mapOpen} onClose={() => setMapOpen(false)} />
+      <VolunteerMapModal open={mapOpen} onClose={() => setMapOpen(false)} task={activeTask} />
     </motion.div>
   )
 }

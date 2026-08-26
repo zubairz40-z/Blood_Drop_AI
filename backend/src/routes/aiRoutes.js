@@ -1,9 +1,9 @@
 /**
- * AI Routes — minimal coordination endpoint.
+ * AI Routes — coordination endpoint.
  *
- * Only hospital and admin roles can invoke the AI orchestrator,
- * since it runs real matching, eligibility, and geo agents against
- * the database.
+ * Patient, hospital, and admin can invoke the orchestrator.
+ * Patients may only coordinate requests they own (ownership is checked
+ * in the controller). Hospitals and admin can coordinate any request.
  */
 
 const express = require("express");
@@ -14,6 +14,6 @@ const { coordinateBloodRequest } = require("../controllers/aiController");
 
 router.use(verifyFirebaseToken);
 
-router.post("/coordinate", authorizeRoles("hospital", "admin"), coordinateBloodRequest);
+router.post("/coordinate", authorizeRoles("patient", "hospital", "admin"), coordinateBloodRequest);
 
 module.exports = router;
