@@ -357,6 +357,15 @@ async function coordinateRealRequest({ requestId }) {
   result.riskReasons = riskResult.reasons || [];
   result.recommendation = riskResult.recommendation || null;
 
+  // Email delivery status — checks whether SMTP is configured
+  const emailService = require("./emailService");
+  try {
+    const transport = emailService.getTransporter();
+    result.emailStatus = transport ? "CONFIGURED" : "NOT_CONFIGURED";
+  } catch {
+    result.emailStatus = "NOT_CONFIGURED";
+  }
+
   return result;
 }
 

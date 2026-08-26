@@ -285,7 +285,7 @@ function AICoordination() {
     sentStatus: result.nextAction === 'CONTACT_PRIMARY_DONOR' ? 'SENT' : 'PENDING',
     responseStatus: actionText,
     wave: selection.wave || null,
-    emailStatus: 'Not configured',
+    emailStatus: result.emailStatus === 'NOT_CONFIGURED' ? 'Email not configured' : (result.emailStatus === 'CONFIGURED' ? 'Email sent' : 'Email not configured'),
   }
 
   return (
@@ -305,7 +305,7 @@ function AICoordination() {
         </div>
         <div className="flex items-center gap-2 self-start">
           <span className="text-sm text-text-muted">Request ID</span>
-          <span className="text-sm font-semibold text-text-dark">{result.requestId}</span>
+          <span className="text-sm font-semibold text-text-dark">{result.requestId ? `REQ-${String(result.requestId).slice(-6).toUpperCase()}` : '—'}</span>
           <Badge variant={emergencyVariant[info.urgency] || 'neutral'}>{info.urgency || '—'}</Badge>
           <Badge variant="info">{actionText}</Badge>
         </div>

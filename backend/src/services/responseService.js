@@ -3,6 +3,7 @@ const Notification = require("../models/Notification");
 const User = require("../models/User");
 const matchingService = require("./matchingService");
 const notificationService = require("./notificationService");
+const emailService = require("./emailService");
 const { STATUS } = require("../utils/requestStatus");
 
 const { NOTIFICATION_TYPE } = Notification;
@@ -39,12 +40,36 @@ async function contactNextDonor({ requestId, contactOrder, wave = 1, actorId, as
     asOf,
   });
 
+  // Send email to the selected donor if SMTP is configured
+  let emailStatus = "NOT_CONFIGURED";
+  try {
+    const donorDoc = await User.findById(donorUserId).select("name email").lean();
+    const hospitalDoc = await User.findById(request.hospital).select("name").lean();
+    if (donorDoc?.email) {
+      const emailResult = await emailService.sendMatchFound({
+        donorEmail: donorDoc.email,
+        donorName: donorDoc.name,
+        bloodGroup: request.bloodGroup,
+        component: request.component,
+        urgency: request.urgency,
+        hospital: hospitalDoc?.name,
+        expiresAt: notification.expiresAt,
+      });
+      emailStatus = emailResult.sent ? "SENT" : (emailResult.reason === "not_configured" ? "NOT_CONFIGURED" : "FAILED");
+    } else {
+      emailStatus = "FAILED";
+    }
+  } catch {
+    emailStatus = "FAILED";
+  }
+
   return {
     contacted: String(donorUserId),
     exhausted: false,
     wave,
     expiresAt: notification.expiresAt,
     notificationId: notification._id,
+    emailStatus,
   };
 }
 

@@ -1,8 +1,12 @@
-import { Link } from 'react-router-dom'
-import { ArrowRight, Server, Brain, Building2, Users, Shield, HandHeart, Code, Share2 } from 'lucide-react'
+import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ArrowRight, Server, Brain, Building2, Users, Shield, HandHeart, Code, Share2, Smartphone } from 'lucide-react'
 import PublicNavbar from '../components/home/PublicNavbar'
 import PublicFooter from '../components/home/PublicFooter'
 import FadeIn from '../components/motion/FadeIn'
+import Button from '../components/ui/Button'
+import Input from '../components/ui/Input'
+import Alert from '../components/ui/Alert'
 
 const useCases = [
   {
@@ -66,6 +70,48 @@ const waysToHelp = [
 ]
 
 function Funding() {
+  const [searchParams] = useSearchParams()
+  const initialAmount = searchParams.get('amount') || '500'
+  const [selectedAmount, setSelectedAmount] = useState(
+    amounts.includes(initialAmount) ? initialAmount : 'custom'
+  )
+  const [customAmount, setCustomAmount] = useState(
+    amounts.includes(initialAmount) ? '' : initialAmount
+  )
+  const [processing, setProcessing] = useState(false)
+  const [paymentResult, setPaymentResult] = useState(null)
+  const [error, setError] = useState(null)
+
+  const effectiveAmount = selectedAmount === 'custom' ? customAmount : selectedAmount
+  const parsedAmount = Number(effectiveAmount)
+
+  async function handlePay() {
+    if (!parsedAmount || parsedAmount < 1) {
+      setError('Please enter a valid amount.')
+      return
+    }
+    setProcessing(true)
+    setError(null)
+    setPaymentResult(null)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/payments/bkash/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: parsedAmount, reference: 'Support BloodDrop' }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPaymentResult(data)
+      } else {
+        setError(data.message || 'Payment could not be initiated.')
+      }
+    } catch {
+      setError('bKash is not available in this environment. Please log in to make a payment.')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <PublicNavbar />
@@ -220,18 +266,87 @@ function Funding() {
           </div>
         </section>
 
-        {/* Financial Support placeholder */}
+        {/* Financial Support — bKash */}
         <section className="py-16 sm:py-20 bg-white">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <FadeIn>
               <div className="p-8 bg-bg rounded-2xl border border-border">
                 <h2 className="text-xl font-bold text-text-dark mb-3">Financial Support</h2>
-                <p className="text-sm text-text-muted leading-relaxed mb-5">
-                  Payment integration will be available in a later deployment phase. BloodDrop AI does not currently accept direct financial contributions.
+                <p className="text-sm text-text-muted leading-relaxed mb-6">
+                  Support BloodDrop AI and help us continue improving emergency blood donation coordination.
                 </p>
-                <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-neutral-100 text-text-secondary text-sm font-medium">
-                  Funding Integration Planned
-                </div>
+
+                {paymentResult ? (
+                  <div className="p-6 bg-emerald-50 rounded-xl border border-emerald-200">
+                    <p className="text-sm font-semibold text-emerald-700 mb-2">Payment initiated</p>
+                    {paymentResult.sandbox ? (
+                      <p className="text-xs text-emerald-600">Sandbox mode — no real transaction occurred. This is a demo flow.</p>
+                    ) : (
+                      <p className="text-xs text-emerald-600">Redirecting to bKash...</p>
+                    )}
+                    <Button size="sm" variant="ghost" className="mt-3" onClick={() => setPaymentResult(null)}>Make another donation</Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-center gap-3 mb-4">
+                      <span className="text-sm font-medium text-text-dark py-2">Payment Method:</span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-pink-50 border border-pink-200 rounded-full text-sm font-semibold text-pink-700">
+                        <Smartphone className="w-4 h-4" /> bKash
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-text-muted mb-3">Amount</p>
+                    <div className="flex flex-wrap justify-center gap-3 mb-4">
+                      {amounts.map((a) => (
+                        <button
+                          key={a}
+                          type="button"
+                          onClick={() => setSelectedAmount(a)}
+                          className={`w-24 py-3 text-sm font-semibold rounded-xl border transition-colors cursor-pointer ${selectedAmount === a ? 'border-brand bg-brand-soft text-brand' : 'border-border-dark bg-white text-text-dark hover:border-brand hover:text-brand'}`}
+                        >
+                          ৳{a}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAmount('custom')}
+                        className={`w-24 py-3 text-sm font-semibold rounded-xl border border-dashed transition-colors cursor-pointer ${selectedAmount === 'custom' ? 'border-brand bg-brand-soft text-brand' : 'border-border-dark bg-white text-text-muted hover:border-brand hover:text-brand'}`}
+                      >
+                        Custom
+                      </button>
+                    </div>
+
+                    {selectedAmount === 'custom' && (
+                      <div className="max-w-xs mx-auto mb-4">
+                        <Input
+                          label="Custom Amount (৳)"
+                          name="customAmount"
+                          type="number"
+                          min="1"
+                          value={customAmount}
+                          onChange={(e) => setCustomAmount(e.target.value)}
+                          placeholder="Enter amount"
+                        />
+                      </div>
+                    )}
+
+                    {error && <Alert variant="error" className="text-xs mb-4">{error}</Alert>}
+
+                    <Button
+                      size="lg"
+                      onClick={handlePay}
+                      disabled={processing || !parsedAmount || parsedAmount < 1}
+                      loading={processing}
+                      className="px-8"
+                    >
+                      Continue with bKash
+                    </Button>
+
+                    <p className="text-[11px] text-text-muted mt-4">
+                      Blood is never paid for. Donations support platform infrastructure and research.
+                    </p>
+                  </>
+                )}
               </div>
             </FadeIn>
           </div>
