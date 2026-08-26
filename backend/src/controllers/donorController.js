@@ -94,7 +94,7 @@ async function createProfile(req, res, next) {
     res.status(201).json({ success: true, profile });
   } catch (err) {
     if (err.name === "ValidationError") {
-      return res.status(400).json({ success: false, message: err.message });
+      return res.status(400).json({ success: false, message: "Validation failed. Check your input." });
     }
     next(err);
   }
@@ -181,7 +181,7 @@ async function updateProfile(req, res, next) {
     res.json({ success: true, profile });
   } catch (err) {
     if (err.name === "ValidationError") {
-      return res.status(400).json({ success: false, message: err.message });
+      return res.status(400).json({ success: false, message: "Validation failed. Check your input." });
     }
     next(err);
   }

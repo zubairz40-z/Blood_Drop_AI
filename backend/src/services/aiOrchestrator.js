@@ -241,26 +241,34 @@ async function coordinateRealRequest({ requestId }) {
   const agentStatus = {};
 
   let [eligibilityResult, geoResult, selection] = await Promise.all([
-    eligibilitySchedulingAgent.assessDonors(donorIds, request.component).then((r) => {
+    eligibilitySchedulingAgent.assessDonors(requestId, {
+      donorIds,
+      candidateSet: matchingResult,
+      asOf: new Date(),
+    }).then((r) => {
       agentStatus.eligibility = "COMPLETED";
       return r;
     }).catch((err) => {
       agentStatus.eligibility = "ERROR";
-      return { component: request.component, eligibleNow: [], eligibleLater: [], excluded: [], error: err.message };
+      return { component: request.component, eligibleNow: [], eligibleLater: [], excluded: [], error: "Eligibility assessment failed." };
     }),
-    geoCoordinationAgent.coordinate(donorIds).then((r) => {
+    geoCoordinationAgent.coordinate(requestId, {
+      candidateSet: matchingResult,
+      neededBy: request.neededBy,
+      asOf: new Date(),
+    }).then((r) => {
       agentStatus.geo = "COMPLETED";
       return r;
     }).catch((err) => {
       agentStatus.geo = "ERROR";
-      return { ordered: [], estimated: [], error: err.message };
+      return { ordered: [], estimated: [], error: "Geo coordination failed." };
     }),
     donorMatchingAgent.selectDonors(requestId, { candidateSet: candidates }).then((r) => {
       agentStatus.matching = "COMPLETED";
       return r;
     }).catch((err) => {
       agentStatus.matching = "ERROR";
-      return { requestId, primary: null, backups: [], selection: { candidates }, error: err.message };
+      return { requestId, primary: null, backups: [], selection: { candidates }, error: "Donor matching failed." };
     }),
   ]);
 

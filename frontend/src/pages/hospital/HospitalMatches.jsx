@@ -19,6 +19,7 @@ function HospitalMatches() {
   const [matchResult, setMatchResult] = useState(null)
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [alert, setAlert] = useState(null)
+  const [alertVariant, setAlertVariant] = useState('success')
 
   const load = useCallback(async () => {
     try {
@@ -45,10 +46,12 @@ function HospitalMatches() {
     try {
       const result = await startMatching(req._id)
       setMatchResult(result)
+      setAlertVariant('success')
       setAlert('Matching completed. Donors have been notified.')
       setTimeout(() => setAlert(null), 5000)
     } catch (err) {
-      const msg = err.response?.data?.message || 'Matching failed. Ensure the request is verified.'
+      const msg = err.response?.data?.message || 'Matching failed. Ensure the request has a valid location and is verified.'
+      setAlertVariant('error')
       setAlert(msg)
       setTimeout(() => setAlert(null), 5000)
     } finally {
@@ -89,7 +92,7 @@ function HospitalMatches() {
       </div>
 
       {alert && (
-        <Alert variant="success" onDismiss={() => setAlert(null)}>
+        <Alert variant={alertVariant} onDismiss={() => setAlert(null)}>
           {alert}
         </Alert>
       )}

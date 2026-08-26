@@ -38,6 +38,7 @@ const userSchema = new mongoose.Schema(
       type: {
         type: String,
         enum: ["Point"],
+        default: "Point",
       },
       coordinates: {
         type: [Number],
@@ -56,7 +57,20 @@ const userSchema = new mongoose.Schema(
       },
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      // Strip internal admin/approval fields so they never leak to the client
+      transform(doc, ret) {
+        delete ret.firebaseUid;
+        delete ret.approvedBy;
+        delete ret.approvedAt;
+        delete ret.rejectionReason;
+        delete ret.__v;
+        return ret;
+      },
+    },
+  }
 );
 
 module.exports = mongoose.model("User", userSchema);

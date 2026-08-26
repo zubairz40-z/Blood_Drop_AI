@@ -176,19 +176,21 @@ describe("coordinateRealRequest (real five-agent path)", () => {
     assert.deepEqual(callArgs[1].candidateSet, CANDIDATES);
   });
 
-  test("runs eligibilitySchedulingAgent.assessDonors with donor IDs and component", async () => {
+  test("runs eligibilitySchedulingAgent.assessDonors with requestId and options", async () => {
     await orchestrator.coordinateRealRequest({ requestId: REQUEST_ID });
     assert.equal(eligibilitySchedulingAgent.assessDonors.mock.callCount(), 1);
     const callArgs = eligibilitySchedulingAgent.assessDonors.mock.calls[0].arguments;
-    assert.deepEqual(callArgs[0], ["donor-1", "donor-2", "donor-3"]);
-    assert.equal(callArgs[1], "WHOLE_BLOOD");
+    assert.equal(callArgs[0], REQUEST_ID);
+    assert.ok(Array.isArray(callArgs[1].donorIds), "should pass donorIds in options");
+    assert.ok(callArgs[1].candidateSet, "should pass candidateSet in options");
   });
 
-  test("runs geoCoordinationAgent.coordinate with donor IDs", async () => {
+  test("runs geoCoordinationAgent.coordinate with requestId and options", async () => {
     await orchestrator.coordinateRealRequest({ requestId: REQUEST_ID });
     assert.equal(geoCoordinationAgent.coordinate.mock.callCount(), 1);
     const callArgs = geoCoordinationAgent.coordinate.mock.calls[0].arguments;
-    assert.deepEqual(callArgs[0], ["donor-1", "donor-2", "donor-3"]);
+    assert.equal(callArgs[0], REQUEST_ID);
+    assert.ok(callArgs[1].candidateSet, "should pass candidateSet in options");
   });
 
   test("returns recommendedDonor from aiManager", async () => {
@@ -275,7 +277,7 @@ describe("coordinateRealRequest (real five-agent path)", () => {
 
     const result = await orchestrator.coordinateRealRequest({ requestId: REQUEST_ID });
     assert.equal(result.agentStatus.eligibility, "ERROR");
-    assert.equal(result.eligibilityResult.error, "Eligibility service unavailable");
+    assert.equal(result.eligibilityResult.error, "Eligibility assessment failed.");
     assert.equal(result.agentStatus.matching, "COMPLETED");
     assert.equal(result.agentStatus.geo, "COMPLETED");
     assert.equal(result.recommendedDonor, "donor-1");
@@ -289,7 +291,7 @@ describe("coordinateRealRequest (real five-agent path)", () => {
 
     const result = await orchestrator.coordinateRealRequest({ requestId: REQUEST_ID });
     assert.equal(result.agentStatus.geo, "ERROR");
-    assert.equal(result.geoResult.error, "Geo service unavailable");
+    assert.equal(result.geoResult.error, "Geo coordination failed.");
     assert.equal(result.agentStatus.matching, "COMPLETED");
     assert.equal(result.recommendedDonor, "donor-1");
   });
@@ -302,7 +304,7 @@ describe("coordinateRealRequest (real five-agent path)", () => {
 
     const result = await orchestrator.coordinateRealRequest({ requestId: REQUEST_ID });
     assert.equal(result.agentStatus.matching, "ERROR");
-    assert.equal(result.selection.error, "Matching selection failed");
+    assert.equal(result.selection.error, "Donor matching failed.");
     assert.equal(result.recommendedDonor, "donor-1");
   });
 

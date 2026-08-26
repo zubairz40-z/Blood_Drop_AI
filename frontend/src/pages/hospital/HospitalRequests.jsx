@@ -13,6 +13,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import HospitalCreateRequestModal from '../../components/hospital/HospitalCreateRequestModal'
 import { fetchMyRequests, verifyBloodRequest, rejectBloodRequest, createBloodRequest } from '../../api/requestApi'
 import { bloodRequestFromApi, toComponentCode, toUrgencyCode } from '../../api/mappers'
+import { useAuth } from '../../context/AuthContext'
 
 const TERMINAL_STATUSES = ['FULFILLED', 'CANCELLED', 'REJECTED', 'EXPIRED']
 
@@ -54,6 +55,7 @@ function RequestRow({ request, children }) {
 }
 
 function HospitalRequests() {
+  const { profile } = useAuth()
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -180,6 +182,12 @@ function HospitalRequests() {
 
       {error && <Alert variant="error" onDismiss={() => setError(null)}>{error}</Alert>}
       {notice && <Alert variant="success" onDismiss={() => setNotice(null)}>{notice}</Alert>}
+
+      {profile && !profile.location?.coordinates?.length && (
+        <Alert variant="warning">
+          Your hospital profile does not have location coordinates set. Emergency requests require a valid location for donor matching. Please update your hospital profile before filing requests.
+        </Alert>
+      )}
 
       <Card>
         <div className="flex items-center gap-2 mb-4">

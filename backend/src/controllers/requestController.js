@@ -28,6 +28,29 @@ async function createRequest(req, res, next) {
       });
     }
 
+    const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+    if (!BLOOD_GROUPS.includes(bloodGroup)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid blood group: ${bloodGroup}`,
+      });
+    }
+
+    const URGENCIES = ["EMERGENCY", "URGENT", "ROUTINE"];
+    if (!URGENCIES.includes(urgency)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid urgency: ${urgency}`,
+      });
+    }
+
+    if (!unitsRequired || unitsRequired < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "unitsRequired must be at least 1.",
+      });
+    }
+
     if (new Date(neededBy) <= new Date()) {
       return res.status(400).json({
         success: false,
@@ -77,13 +100,43 @@ async function createRequest(req, res, next) {
     }
 
     const hospitalDoc = isHospital ? req.currentUser : await User.findById(hospitalId);
-    let requestLocation = location;
+
+    // Determine the location for this request.
+    // Hospital location from the profile takes priority because it is the
+    // physical place where the donation will happen.
+    let requestLocation = null;
+
     if (hospitalDoc.location?.coordinates?.length === 2) {
       requestLocation = {
         type: "Point",
         coordinates: hospitalDoc.location.coordinates,
         address: hospitalDoc.address || location?.address || "",
       };
+    } else if (
+      location?.type === "Point" &&
+      Array.isArray(location.coordinates) &&
+      location.coordinates.length === 2
+    ) {
+      // Fallback: client-provided valid GeoJSON
+      requestLocation = location;
+    } else if (
+      Array.isArray(location) &&
+      location.length === 2 &&
+      typeof location[0] === "number" &&
+      typeof location[1] === "number"
+    ) {
+      // Fallback: flat [lng, lat] array
+      requestLocation = { type: "Point", coordinates: location };
+    }
+
+    // A blood request must have a valid location for geo-based donor matching.
+    // If neither the hospital profile nor the request provides coordinates,
+    // reject early with a clear message instead of saving malformed GeoJSON.
+    if (!requestLocation || !requestLocation.coordinates || requestLocation.coordinates.length !== 2) {
+      return res.status(400).json({
+        success: false,
+        message: "This request cannot be filed because the hospital location is not set. Please update the hospital profile with valid coordinates before creating a request.",
+      });
     }
 
     const request = await BloodRequest.create({
@@ -114,7 +167,7 @@ async function createRequest(req, res, next) {
     res.status(201).json({ success: true, request });
   } catch (err) {
     if (err.name === "ValidationError") {
-      return res.status(400).json({ success: false, message: err.message });
+      return res.status(400).json({ success: false, message: "Validation failed. Check your input." });
     }
     next(err);
   }
@@ -220,7 +273,7 @@ async function updateRequest(req, res, next) {
     res.json({ success: true, request });
   } catch (err) {
     if (err.name === "ValidationError") {
-      return res.status(400).json({ success: false, message: err.message });
+      return res.status(400).json({ success: false, message: "Validation failed. Check your input." });
     }
     if (err.name === "CastError") {
       return res.status(404).json({ success: false, message: "Request not found" });
