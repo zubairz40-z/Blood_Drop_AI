@@ -31,7 +31,7 @@ async function createDonation(req, res, next) {
       overrideReason,
     });
 
-    res.status(201).json({ success: true, data: donation });
+    res.status(201).json({ success: true, donation });
   } catch (err) {
     next(err);
   }
@@ -45,7 +45,7 @@ async function getMyDonations(req, res, next) {
       .populate("hospital", "name email")
       .populate("request", "bloodGroup component urgency status");
 
-    res.json({ success: true, data: donations });
+    res.json({ success: true, donations });
   } catch (err) {
     next(err);
   }
@@ -62,7 +62,7 @@ async function getPendingDonations(req, res, next) {
       .populate("donor", "name email phone")
       .populate("request", "bloodGroup component unitsRequired unitsFulfilled");
 
-    res.json({ success: true, data: donations });
+    res.json({ success: true, donations });
   } catch (err) {
     next(err);
   }
@@ -93,7 +93,7 @@ async function getDonationById(req, res, next) {
         .json({ success: false, message: "You cannot view this donation." });
     }
 
-    res.json({ success: true, data: donation });
+    res.json({ success: true, donation });
   } catch (err) {
     next(err);
   }
@@ -107,7 +107,7 @@ async function confirmDonation(req, res, next) {
       hospitalId: req.currentUser._id,
     });
 
-    res.json({ success: true, data: donation });
+    res.json({ success: true, donation });
   } catch (err) {
     next(err);
   }
@@ -124,7 +124,7 @@ async function cancelDonation(req, res, next) {
       reason,
     });
 
-    res.json({ success: true, data: donation });
+    res.json({ success: true, donation });
   } catch (err) {
     next(err);
   }

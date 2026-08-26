@@ -147,11 +147,11 @@ async function run() {
   });
   check("hospital records donation", recorded.status === 201, recorded.data);
 
-  const donationId = recorded.data?.data?._id;
-  check("donation starts PENDING", recorded.data?.data?.status === "PENDING");
+  const donationId = recorded.data?.donation?._id;
+  check("donation starts PENDING", recorded.data?.donation?.status === "PENDING");
   check(
     "component copied from request",
-    recorded.data?.data?.component === "WHOLE_BLOOD"
+    recorded.data?.donation?.component === "WHOLE_BLOOD"
   );
 
   const future = await call("/api/donations", hospitalToken, "POST", {
@@ -170,7 +170,7 @@ async function run() {
     "PATCH"
   );
   check("donation confirmed", confirmed.status === 200, confirmed.data);
-  check("status is CONFIRMED", confirmed.data?.data?.status === "CONFIRMED");
+  check("status is CONFIRMED", confirmed.data?.donation?.status === "CONFIRMED");
 
   const profile = await DonorProfile.findOne({ user: donorUser._id });
   const entry = profile?.eligibility?.find((e) => e.component === "WHOLE_BLOOD");
@@ -239,7 +239,7 @@ async function run() {
   check("donor sees own history", history.status === 200, history.status);
   check(
     "history contains the donation",
-    Array.isArray(history.data?.data) && history.data.data.length > 0
+    Array.isArray(history.data?.donations) && history.data.donations.length > 0
   );
 
   const pending = await call("/api/donations/pending", hospitalToken);
