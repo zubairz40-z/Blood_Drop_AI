@@ -146,16 +146,19 @@ async function check() {
       if (dist <= 20) within20++;
     }
 
-    const flag = within10 < 10 ? " ⚠️ LOW" : "";
-    console.log(`  ${hospital.name.padEnd(45)} ${String(within5).padStart(6)} ${String(within10).padStart(6)} ${String(within20).padStart(6)}${flag}`);
-
+    let flag = "";
     if (within10 === 0) {
+      flag = " ❌ CRITICAL";
       console.log(`  ❌ CRITICAL: ${hospital.name} has 0 donors within 10km!`);
       errors++;
     } else if (within10 < 10) {
+      flag = " ⚠️ LOW";
       console.log(`  ⚠️  WARNING: ${hospital.name} has fewer than 10 donors within 10km`);
       warnings++;
+    } else if (within10 > 60) {
+      flag = " ⚠️ HIGH DENSITY";
     }
+    console.log(`  ${hospital.name.padEnd(45)} ${String(within5).padStart(6)} ${String(within10).padStart(6)} ${String(within20).padStart(6)}${flag}`);
   }
   console.log("  " + "-".repeat(90) + "\n");
 
@@ -171,7 +174,6 @@ async function check() {
             distanceField: "distMeters",
             maxDistance: 50000,
             spherical: true,
-            limit: 5,
           },
         },
         { $limit: 5 },
