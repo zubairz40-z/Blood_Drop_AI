@@ -39,6 +39,46 @@ const MIN_AGE_YEARS = 18;
 const MAX_AGE_YEARS = 65;
 
 /**
+ * Which donor blood groups a recipient can safely receive RED CELLS from.
+ * Read as: RED_CELL_COMPATIBILITY[recipient] = [acceptable donors]
+ *
+ * Red cells carry antigens, so O- (no antigens) is the universal donor and
+ * AB+ (all antigens) the universal recipient.
+ */
+const RED_CELL_COMPATIBILITY = {
+  "O-": ["O-"],
+  "O+": ["O-", "O+"],
+  "A-": ["O-", "A-"],
+  "A+": ["O-", "O+", "A-", "A+"],
+  "B-": ["O-", "B-"],
+  "B+": ["O-", "O+", "B-", "B+"],
+  "AB-": ["O-", "A-", "B-", "AB-"],
+  "AB+": ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"],
+};
+
+/**
+ * Which donor blood groups a recipient can safely receive PLASMA from.
+ *
+ * Deliberately the inverse of the red cell table. Plasma carries antibodies
+ * rather than antigens, so AB (no anti-A or anti-B antibodies) is the
+ * universal plasma donor and O the universal plasma recipient — the exact
+ * opposite of red cells. Writing one table and reusing it for both would be
+ * a clinically dangerous bug.
+ */
+const PLASMA_COMPATIBILITY = {
+  "AB+": ["AB+", "AB-"],
+  "AB-": ["AB+", "AB-"],
+  "A+": ["A+", "A-", "AB+", "AB-"],
+  "A-": ["A+", "A-", "AB+", "AB-"],
+  "B+": ["B+", "B-", "AB+", "AB-"],
+  "B-": ["B+", "B-", "AB+", "AB-"],
+  "O+": ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"],
+  "O-": ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"],
+};
+
+const BLOOD_GROUPS = Object.keys(RED_CELL_COMPATIBILITY);
+
+/**
  * Given a donation date and component, returns when the donor is next eligible.
  */
 function calculateNextEligibleAt(component, donatedAt) {
@@ -61,6 +101,35 @@ function calculateAge(dateOfBirth) {
     age--;
   }
   return age;
+}
+
+/**
+ * Donor groups a recipient can receive a given component from.
+ *
+ * PLATELETS uses the red cell table on purpose. Real platelet compatibility
+ * is more permissive — plasma content matters more than antigens — but the
+ * red cell table is the conservative choice: it never suggests an unsafe
+ * match, only a stricter one than strictly necessary.
+ */
+function compatibleDonorGroups(recipientGroup, component) {
+  if (!COMPONENT_CODES.includes(component)) {
+    throw new Error(`Unknown component: ${component}`);
+  }
+
+  const table =
+    component === COMPONENTS.PLASMA
+      ? PLASMA_COMPATIBILITY
+      : RED_CELL_COMPATIBILITY;
+
+  const groups = table[recipientGroup];
+  if (!groups) throw new Error(`Unknown blood group: ${recipientGroup}`);
+
+  return groups;
+}
+
+/** Can this donor group give this component to this recipient group? */
+function isCompatible(donorGroup, recipientGroup, component) {
+  return compatibleDonorGroups(recipientGroup, component).includes(donorGroup);
 }
 
 /**
@@ -159,6 +228,11 @@ module.exports = {
   MIN_WEIGHT_KG,
   MIN_AGE_YEARS,
   MAX_AGE_YEARS,
+  BLOOD_GROUPS,
+  RED_CELL_COMPATIBILITY,
+  PLASMA_COMPATIBILITY,
+  compatibleDonorGroups,
+  isCompatible,
   calculateNextEligibleAt,
   calculateAge,
   checkEligibility,

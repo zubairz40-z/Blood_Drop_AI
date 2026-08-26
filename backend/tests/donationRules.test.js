@@ -4,6 +4,11 @@ const {
   calculateNextEligibleAt,
   calculateAge,
   checkEligibility,
+  compatibleDonorGroups,
+  isCompatible,
+  BLOOD_GROUPS,
+  RED_CELL_COMPATIBILITY,
+  PLASMA_COMPATIBILITY,
   DEFERRAL_DAYS,
   COMPONENT_CODES,
 } = require("../src/utils/donationRules");
@@ -227,4 +232,112 @@ describe("checkEligibility", () => {
     }
   });
 });
+});
+
+describe("blood compatibility", () => {
+  test("O- is the universal red cell donor", () => {
+    for (const recipient of BLOOD_GROUPS) {
+      assert.ok(
+        isCompatible("O-", recipient, "WHOLE_BLOOD"),
+        `O- should be able to give to ${recipient}`
+      );
+    }
+  });
+
+  test("AB+ is the universal red cell recipient", () => {
+    for (const donor of BLOOD_GROUPS) {
+      assert.ok(
+        isCompatible(donor, "AB+", "WHOLE_BLOOD"),
+        `AB+ should be able to receive from ${donor}`
+      );
+    }
+  });
+
+  test("AB is the universal plasma donor", () => {
+    for (const recipient of BLOOD_GROUPS) {
+      assert.ok(isCompatible("AB+", recipient, "PLASMA"));
+      assert.ok(isCompatible("AB-", recipient, "PLASMA"));
+    }
+  });
+
+  test("O is the universal plasma recipient", () => {
+    for (const donor of BLOOD_GROUPS) {
+      assert.ok(isCompatible(donor, "O+", "PLASMA"));
+      assert.ok(isCompatible(donor, "O-", "PLASMA"));
+    }
+  });
+
+  test("plasma runs opposite to red cells", () => {
+    // O- gives red cells to everyone but receives plasma from everyone
+    assert.ok(isCompatible("O-", "AB+", "WHOLE_BLOOD"));
+    assert.ok(!isCompatible("O-", "AB+", "PLASMA"));
+
+    // AB+ is the mirror image
+    assert.ok(!isCompatible("AB+", "O-", "WHOLE_BLOOD"));
+    assert.ok(isCompatible("AB+", "O-", "PLASMA"));
+  });
+
+  test("O- can only receive red cells from O-", () => {
+    for (const donor of BLOOD_GROUPS) {
+      const expected = donor === "O-";
+      assert.strictEqual(isCompatible(donor, "O-", "WHOLE_BLOOD"), expected);
+    }
+  });
+
+  test("Rh negative recipients cannot take positive red cells", () => {
+    assert.ok(!isCompatible("O+", "O-", "WHOLE_BLOOD"));
+    assert.ok(!isCompatible("A+", "A-", "WHOLE_BLOOD"));
+    assert.ok(!isCompatible("B+", "B-", "WHOLE_BLOOD"));
+    assert.ok(!isCompatible("AB+", "AB-", "WHOLE_BLOOD"));
+  });
+
+  test("platelets and double red cells use the red cell table", () => {
+    for (const recipient of BLOOD_GROUPS) {
+      assert.deepStrictEqual(
+        compatibleDonorGroups(recipient, "PLATELETS"),
+        compatibleDonorGroups(recipient, "WHOLE_BLOOD")
+      );
+      assert.deepStrictEqual(
+        compatibleDonorGroups(recipient, "DOUBLE_RED_CELLS"),
+        compatibleDonorGroups(recipient, "WHOLE_BLOOD")
+      );
+    }
+  });
+
+  test("every group can always receive from itself", () => {
+    for (const group of BLOOD_GROUPS) {
+      for (const component of COMPONENT_CODES) {
+        assert.ok(
+          isCompatible(group, group, component),
+          `${group} should be self-compatible for ${component}`
+        );
+      }
+    }
+  });
+
+  test("both tables cover every blood group", () => {
+    for (const group of BLOOD_GROUPS) {
+      assert.ok(Array.isArray(RED_CELL_COMPATIBILITY[group]));
+      assert.ok(Array.isArray(PLASMA_COMPATIBILITY[group]));
+    }
+  });
+
+  test("no table entry names an unknown group", () => {
+    for (const table of [RED_CELL_COMPATIBILITY, PLASMA_COMPATIBILITY]) {
+      for (const donors of Object.values(table)) {
+        for (const d of donors) assert.ok(BLOOD_GROUPS.includes(d));
+      }
+    }
+  });
+
+  test("compatibility is not symmetric", () => {
+    // If it were, the tables would be wrong
+    assert.ok(isCompatible("O-", "A+", "WHOLE_BLOOD"));
+    assert.ok(!isCompatible("A+", "O-", "WHOLE_BLOOD"));
+  });
+
+  test("unknown inputs throw", () => {
+    assert.throws(() => compatibleDonorGroups("XY+", "WHOLE_BLOOD"));
+    assert.throws(() => compatibleDonorGroups("O+", "BONE_MARROW"));
+  });
 });
