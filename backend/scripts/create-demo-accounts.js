@@ -25,6 +25,29 @@ const DonorProfile = require("../src/models/DonorProfile");
 
 const CRED_PATH = path.join(__dirname, "..", ".demo-hospital-credentials.json");
 
+const DEMO_HOSPITAL_PASSWORDS = {
+  evercare: "evercare1234",
+  square: "square1234",
+  united: "united1234",
+  labaid: "labaid1234",
+  popular: "popular1234",
+  ibnsina: "ibnsina1234",
+  bsh: "bsh1234",
+  greenlife: "greenlife1234",
+  anwerkhan: "anwerkhan1234",
+  holyfamily: "holyfamily1234",
+  dmch: "dmch1234",
+  kurmitola: "kurmitola1234",
+  birdem: "birdem1234",
+  nhf: "nhf1234",
+  ahsania: "ahsania1234",
+  asgarali: "asgarali1234",
+  suhrawardy: "suhrawardy1234",
+  nins: "nins1234",
+  cmch: "cmch1234",
+  osmani: "osmani1234",
+};
+
 function generatePassword() {
   return crypto.randomBytes(8).toString("base64url").slice(0, 12);
 }
@@ -107,16 +130,16 @@ function loadOrCreateCredentials() {
     return JSON.parse(fs.readFileSync(CRED_PATH, "utf8"));
   }
 
-  // Generate passwords for all accounts
-  const creds = { hospitals: {}, donors: {}, patient: null, volunteer: null };
-  for (const h of HOSPITAL_ACCOUNTS) {
-    creds.hospitals[h.key] = generatePassword();
-  }
-  for (const d of FEATURED_DONOR_DEFS) {
-    creds.donors[d.key] = generatePassword();
-  }
-  creds.patient = generatePassword();
-  creds.volunteer = generatePassword();
+  const creds = {
+    hospitals: Object.fromEntries(
+      HOSPITAL_ACCOUNTS.map((h) => [h.key, DEMO_HOSPITAL_PASSWORDS[h.key] || generatePassword()])
+    ),
+    donors: Object.fromEntries(
+      FEATURED_DONOR_DEFS.map((d) => [d.key, generatePassword()])
+    ),
+    patient: "patient1234",
+    volunteer: "volunteer1234",
+  };
 
   fs.writeFileSync(CRED_PATH, JSON.stringify(creds, null, 2));
   console.log(`  📄 Generated credentials file: ${CRED_PATH}`);

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Map, Marker, Popup, NavigationControl, LngLatBounds } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { normalizeCoordinates, DHAKA_CENTER } from '../../utils/locationUtils'
@@ -41,6 +41,7 @@ function BloodDropMap({ markers = [], route = null, height = '350px', className 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const markersRef = useRef([])
+  const [mapError, setMapError] = useState(false)
 
   const validMarkers = markers
     .map((m) => {
@@ -57,10 +58,12 @@ function BloodDropMap({ markers = [], route = null, height = '350px', className 
       container: containerRef.current,
       style: MAP_STYLE,
       center: [DHAKA_CENTER.lng, DHAKA_CENTER.lat],
-      zoom: 12,
+      zoom: 11,
       attributionControl: true,
     })
 
+    map.on('error', () => setMapError(true))
+    map.on('load', () => setMapError(false))
     map.addControl(new NavigationControl(), 'top-right')
     mapRef.current = map
 
@@ -146,6 +149,11 @@ function BloodDropMap({ markers = [], route = null, height = '350px', className 
             Location coordinates are not available for this view.
           </p>
         </div>
+        {mapError && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Map tiles are temporarily unavailable.
+          </div>
+        )}
         <MapLegend />
       </div>
     )
@@ -159,6 +167,11 @@ function BloodDropMap({ markers = [], route = null, height = '350px', className 
       >
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       </div>
+      {mapError && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Map tiles are temporarily unavailable.
+        </div>
+      )}
       <MapLegend />
     </div>
   )

@@ -13,7 +13,9 @@
     "seed:bangladesh:clear": "node scripts/clearBangladeshSeed.js",
     "check:geo": "node scripts/check-seed-geo.js",
     "demo:accounts": "node scripts/create-demo-accounts.js",
-    "demo:accounts:report": "node scripts/demo-accounts-report.js"
+    "demo:hospitals": "node scripts/create-demo-hospital-auth.js",
+    "demo:accounts:report": "node scripts/demo-accounts-report.js",
+    "demo:accounts:list": "node scripts/demo-accounts-report.js"
   },
   "keywords": [],
   "author": "",
