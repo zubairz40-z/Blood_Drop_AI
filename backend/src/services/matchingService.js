@@ -65,7 +65,10 @@ function scoreHistory(totalDonations, weight = DEFAULT_WEIGHTS.history) {
  *
  * Returns the Shared Contract 1 shape: { requestId, candidates: [...] }.
  */
-async function findCandidates(requestId, { limit = 10, asOf = new Date() } = {}) {
+async function findCandidates(
+  requestId,
+  { limit = 10, asOf = new Date(), donorFilter } = {}
+) {
   const request = await BloodRequest.findById(requestId);
   if (!request) fail("Request not found.", 404);
 
@@ -107,6 +110,10 @@ async function findCandidates(requestId, { limit = 10, asOf = new Date() } = {})
           bloodGroup: { $in: acceptableGroups },
           donationTypes: request.component,
           isAvailable: true,
+          // Optional narrowing, used by tests to isolate themselves from
+          // whatever donors happen to exist in the database. Never set in
+          // production — a filter here would silently hide real donors.
+          ...(donorFilter ?? {}),
         },
       },
     },
