@@ -16,7 +16,7 @@ function fail(message, status = 400) {
 async function createBkashPayment(req, res, next) {
   try {
     const { amount, reference } = req.body;
-    const userId = req.user._id;
+    const userId = req.currentUser._id;
 
     if (!amount || typeof amount !== "number" || amount < 1) {
       fail("Amount must be a positive number.");
@@ -57,6 +57,12 @@ async function executeBkashPayment(req, res, next) {
 
     const payment = await Payment.findOne({ paymentId });
     if (!payment) fail("Payment not found.", 404);
+
+    // Ownership check: only the payment owner or admin can execute
+    const isAdmin = req.currentUser.role === "admin";
+    const isOwner = String(payment.user) === String(req.currentUser._id);
+    if (!isAdmin && !isOwner) fail("Not authorized to execute this payment.", 403);
+
     if (payment.status === PAYMENT_STATUS.COMPLETED) {
       return res.json({ success: true, message: "Already completed" });
     }
@@ -83,7 +89,7 @@ async function executeBkashPayment(req, res, next) {
 /** GET /api/payments/my */
 async function getMyPayments(req, res, next) {
   try {
-    const payments = await Payment.find({ user: req.user._id })
+    const payments = await Payment.find({ user: req.currentUser._id })
       .sort({ createdAt: -1 })
       .limit(50)
       .select("-providerRaw");

@@ -1,15 +1,16 @@
 /**
  * Chat Routes — single endpoint for the BloodDrop chatbot.
  *
- * No authentication required: the chatbot is available on public-facing
- * pages as part of the existing site design. The endpoint is read-only
- * and performs no BloodDrop state changes.
+ * Requires Firebase auth so the chatbot can scope results to the
+ * requesting user's ID and role per the CLAUDE.md specification.
+ * The endpoint is read-only and performs no BloodDrop state changes.
  */
 
 const express = require("express");
 const router = express.Router();
+const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
 const { handleChat } = require("../controllers/chatController");
 
-router.post("/", handleChat);
+router.post("/", verifyFirebaseToken, handleChat);
 
 module.exports = router;

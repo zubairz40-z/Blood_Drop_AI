@@ -5,6 +5,10 @@ const BloodRequest = require("../models/BloodRequest");
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
 const authorizeRoles = require("../middleware/authorizeRoles");
 
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // Every route in this file requires an active admin
 router.use(verifyFirebaseToken, authorizeRoles("admin"));
 
@@ -17,10 +21,11 @@ router.get("/requests", async (req, res) => {
     if (status) filter.status = status;
     if (urgency) filter.urgency = urgency;
     if (search) {
+      const safe = escapeRegex(search);
       filter.$or = [
-        { bloodGroup: { $regex: search, $options: "i" } },
-        { patientName: { $regex: search, $options: "i" } },
-        { "location.address": { $regex: search, $options: "i" } },
+        { bloodGroup: { $regex: safe, $options: "i" } },
+        { patientName: { $regex: safe, $options: "i" } },
+        { "location.address": { $regex: safe, $options: "i" } },
       ];
     }
 

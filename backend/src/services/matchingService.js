@@ -63,6 +63,10 @@ function scoreHistory(totalDonations, weight = DEFAULT_WEIGHTS.history) {
  * for us — it turns "every donor in the database" into "the fifty nearest"
  * inside the query. Every later filter then runs over a small in-memory set.
  *
+ * If no candidates are found at the configured radius, the search automatically
+ * expands: 1x → 2x → 3x, up to a hard cap of 60 km. This is the progressive
+ * radius expansion required by the proposal.
+ *
  * Returns the Shared Contract 1 shape: { requestId, candidates: [...] }.
  */
 async function findCandidates(
@@ -87,8 +91,9 @@ async function findCandidates(
     );
   }
 
-  const radiusKm = SEARCH_RADIUS_KM[request.urgency] ?? 25;
+  const baseRadiusKm = SEARCH_RADIUS_KM[request.urgency] ?? 25;
   const weights = WEIGHTS[request.urgency] ?? DEFAULT_WEIGHTS;
+  const MAX_RADIUS_KM = 60;
 
   // Only these groups can help, so let the database discard the rest
   const acceptableGroups = compatibleDonorGroups(
@@ -96,73 +101,95 @@ async function findCandidates(
     request.component
   );
 
-  // Stage 1 — geography, in the database.
-  // $geoNear must be the first stage of the pipeline, and distanceField is
-  // returned in metres because the index is spherical.
-  const nearby = await DonorProfile.aggregate([
-    {
-      $geoNear: {
-        near: { type: "Point", coordinates: coords },
-        distanceField: "distanceMeters",
-        maxDistance: radiusKm * 1000,
-        spherical: true,
-        query: {
-          bloodGroup: { $in: acceptableGroups },
-          donationTypes: request.component,
-          isAvailable: true,
-          // Optional narrowing, used by tests to isolate themselves from
-          // whatever donors happen to exist in the database. Never set in
-          // production — a filter here would silently hide real donors.
-          ...(donorFilter ?? {}),
+  // Progressive radius expansion: 1x → 2x → 3x, capped at MAX_RADIUS_KM
+  const expansionLevels = [
+    baseRadiusKm,
+    Math.min(baseRadiusKm * 2, MAX_RADIUS_KM),
+    Math.min(baseRadiusKm * 3, MAX_RADIUS_KM),
+  ];
+  // Deduplicate (e.g. base=50 → [50, 60, 60] → skip the repeated 60)
+  const uniqueLevels = [...new Set(expansionLevels)];
+
+  let nearby = [];
+  let radiusKm = baseRadiusKm;
+
+  for (const level of uniqueLevels) {
+    radiusKm = level;
+
+    nearby = await DonorProfile.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: coords },
+          distanceField: "distanceMeters",
+          maxDistance: radiusKm * 1000,
+          spherical: true,
+          query: {
+            bloodGroup: { $in: acceptableGroups },
+            donationTypes: request.component,
+            isAvailable: true,
+            ...(donorFilter ?? {}),
+          },
         },
       },
-    },
-    { $limit: 50 },
-  ]);
+      { $limit: 50 },
+    ]);
 
-  // Stage 2 — medical rules, in Node.
-  // checkEligibility is deliberately not expressible as a Mongo query: it is
-  // the single source of medical truth and must not be duplicated in a
-  // pipeline where it could drift out of sync.
-  const candidates = [];
+    // Stage 2 — medical rules, in Node.
+    const candidates = [];
 
-  for (const donor of nearby) {
-    const verdict = checkEligibility(donor, request.component, asOf);
-    if (!verdict.eligible) continue;
+    for (const donor of nearby) {
+      const verdict = checkEligibility(donor, request.component, asOf);
+      if (!verdict.eligible) continue;
 
-    const distanceKm = Math.round((donor.distanceMeters / 1000) * 10) / 10;
-    const etaMinutes = estimateEtaMinutes(distanceKm);
+      const distanceKm = Math.round((donor.distanceMeters / 1000) * 10) / 10;
+      const etaMinutes = estimateEtaMinutes(distanceKm);
 
-    const score =
-      scoreDistance(distanceKm, radiusKm, weights.distance) +
-      scoreHistory(donor.totalDonations, weights.history);
+      const score =
+        scoreDistance(distanceKm, radiusKm, weights.distance) +
+        scoreHistory(donor.totalDonations, weights.history);
 
-    candidates.push({
-      donorId: String(donor.user),
-      bloodGroup: donor.bloodGroup,
-      component: request.component,
-      eligible: true,
-      available: true,
-      distanceKm,
-      etaMinutes,
-      score,
-      reasons: [
-        `Compatible with ${request.bloodGroup}`,
-        "Eligible",
-        "Available",
-        distanceKm <= radiusKm / 2 ? "Nearby" : "Within range",
-      ],
-    });
+      candidates.push({
+        donorId: String(donor.user),
+        bloodGroup: donor.bloodGroup,
+        component: request.component,
+        eligible: true,
+        available: true,
+        distanceKm,
+        etaMinutes,
+        score,
+        reasons: [
+          `Compatible with ${request.bloodGroup}`,
+          "Eligible",
+          "Available",
+          distanceKm <= radiusKm / 2 ? "Nearby" : "Within range",
+        ],
+      });
+    }
+
+    // Highest score first; ties broken by proximity
+    candidates.sort((a, b) => b.score - a.score || a.distanceKm - b.distanceKm);
+
+    // If we found candidates at this level, return them
+    if (candidates.length > 0) {
+      return {
+        requestId: String(request._id),
+        radiusKm,
+        weights,
+        expanded: radiusKm !== baseRadiusKm,
+        expansionLevel: uniqueLevels.indexOf(level) + 1,
+        candidates: candidates.slice(0, limit),
+      };
+    }
   }
 
-  // Highest score first; ties broken by proximity
-  candidates.sort((a, b) => b.score - a.score || a.distanceKm - b.distanceKm);
-
+  // No candidates at any radius level — return empty with context
   return {
     requestId: String(request._id),
     radiusKm,
     weights,
-    candidates: candidates.slice(0, limit),
+    expanded: radiusKm !== baseRadiusKm,
+    expansionLevel: uniqueLevels.length,
+    candidates: [],
   };
 }
 
