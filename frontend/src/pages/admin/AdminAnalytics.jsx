@@ -29,7 +29,7 @@ function AdminAnalytics() {
       </div>
 
       <p className="text-xs text-text-muted">
-        Demo analytics. Live data will be connected during backend integration.
+        Platform analytics — donation trends and request patterns.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

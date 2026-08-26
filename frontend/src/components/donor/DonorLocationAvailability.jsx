@@ -166,7 +166,7 @@ function DonorLocationAvailability({ location, onLocationChange, available, onAv
       )}
 
       <p className="text-xs text-text-muted">
-        Your location is currently kept only in this demo session. It will be used for donor coordination after backend integration.
+        Your location is used for nearby donor coordination.
       </p>
 
       {locationMessage && (

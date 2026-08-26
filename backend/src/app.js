@@ -16,6 +16,10 @@ const donationRoutes = require("./routes/donationRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const volunteerRoutes = require("./routes/volunteerRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const { getAdminAnalytics } = require("./controllers/adminAnalyticsController");
+const verifyFirebaseToken = require("./middleware/verifyFirebaseToken");
+const authorizeRoles = require("./middleware/authorizeRoles");
 
 const app = express();
 
@@ -44,6 +48,8 @@ app.use("/api/donations", donationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/volunteer", volunteerRoutes);
+app.use("/api/payments", paymentRoutes);
+app.get("/api/admin/analytics", verifyFirebaseToken, authorizeRoles("admin"), getAdminAnalytics);
 
 
 // Unknown route → JSON, not Express's default HTML
