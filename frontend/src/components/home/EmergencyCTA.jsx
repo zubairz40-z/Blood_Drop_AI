@@ -1,8 +1,29 @@
 import { AlertTriangle } from 'lucide-react'
 import Button from '../ui/Button'
 import FadeIn from '../motion/FadeIn'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
 function EmergencyCTA() {
+  const navigate = useNavigate()
+  const { profile, loading } = useAuth()
+
+  function handleRequestBlood() {
+    if (loading || !profile) {
+      navigate('/login')
+      return
+    }
+
+    const destinationByRole = {
+      patient: '/patient/requests/create',
+      donor: '/donor',
+      hospital: '/hospital',
+      volunteer: '/volunteer',
+      admin: '/admin',
+    }
+    navigate(destinationByRole[profile.role] || '/login')
+  }
+
   return (
     <section className="py-20 sm:py-28 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,8 +39,8 @@ function EmergencyCTA() {
               <p className="text-white/80 mb-8 max-w-lg mx-auto">
                 Start a blood request and let BloodDrop AI coordinate compatible donors in your area.
               </p>
-              <Button variant="primary" size="lg" className="bg-white text-blood hover:bg-white/90 border-0 shadow-lg">
-                Start a Blood Request
+              <Button type="button" variant="primary" size="lg" onClick={handleRequestBlood} className="bg-white text-blood hover:bg-white/90 border-0 shadow-lg">
+                Request Blood Now
               </Button>
             </div>
           </div>

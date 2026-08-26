@@ -48,6 +48,7 @@ function AICoordination() {
   const [requestInfo, setRequestInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -56,13 +57,36 @@ function AICoordination() {
       setLoading(true)
       setError(null)
       try {
-        const [aiResult, reqData] = await Promise.all([
-          coordinateBloodRequest(requestId),
-          fetchRequestById(requestId).catch(() => null),
-        ])
+        const reqData = await fetchRequestById(requestId)
+        const request = bloodRequestFromApi(reqData)
+        const canCoordinate = ['VERIFIED', 'MATCHING'].includes(request?.status)
+        let aiResult = null
+
+        if (canCoordinate) {
+          aiResult = await coordinateBloodRequest(requestId)
+        } else {
+          aiResult = {
+            requestInfo: {
+              bloodGroup: request.bloodGroup,
+              component: request.component,
+              urgency: request.urgency,
+              unitsRequired: request.unitsRequired,
+              status: request.status,
+              requestLocation: reqData.location || null,
+              hospitalName: request.hospital?.name || null,
+            },
+            recommendedDonor: request.matchedDonor?.id || null,
+            bestDonor: request.matchedDonor
+              ? { donorId: request.matchedDonor.id, name: request.matchedDonor.name }
+              : null,
+            nextAction: request.status === 'FULFILLED' ? 'FULFILLED' : 'ACCEPTED',
+            agentStatus: {},
+          }
+        }
+
         if (!cancelled) {
           setResult(aiResult)
-          if (reqData) setRequestInfo(bloodRequestFromApi(reqData))
+          setRequestInfo(request)
         }
       } catch (err) {
         if (!cancelled) {
@@ -78,6 +102,23 @@ function AICoordination() {
 
     load()
     return () => { cancelled = true }
+  }, [requestId, retryCount])
+
+  useEffect(() => {
+    let cancelled = false
+    const refreshStatus = async () => {
+      try {
+        const request = await fetchRequestById(requestId)
+        if (!cancelled) setRequestInfo(bloodRequestFromApi(request))
+      } catch {
+        // Keep the last known coordination result visible during refreshes.
+      }
+    }
+    const timer = setInterval(refreshStatus, 4000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
   }, [requestId])
 
   if (loading) {
@@ -108,9 +149,14 @@ function AICoordination() {
           title="AI coordination unavailable"
           description={error}
           action={
-            <Button onClick={() => navigate('/patient/requests')}>
-              Back to My Requests
-            </Button>
+            <div className="flex justify-center gap-3">
+              <Button onClick={() => setRetryCount((count) => count + 1)}>
+                Retry
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/patient/requests')}>
+                Back to My Requests
+              </Button>
+            </div>
           }
         />
       </motion.div>
@@ -139,12 +185,16 @@ function AICoordination() {
     )
   }
 
-  const actionText = actionLabel[result.nextAction] || result.nextAction
   const info = result.requestInfo || {}
   const selection = result.selection || {}
   const eligibility = result.eligibilityResult || {}
   const geo = result.geoResult || {}
   const agentStatus = result.agentStatus || {}
+  const lifecycleLabel = {
+    MATCHED: 'ACCEPTED',
+    FULFILLED: 'FULFILLED',
+  }
+  const actionText = lifecycleLabel[info.status] || actionLabel[result.nextAction] || result.nextAction
 
   const isPendingVerification = info.status === 'PENDING_VERIFICATION'
 
@@ -207,7 +257,8 @@ function AICoordination() {
     `Next action: ${result.nextAction}`,
   ]
   if (result.recommendedDonor) {
-    managerOutputs.push(`Recommended: ${result.recommendedDonor}`)
+    const donorLabel = result.bestDonor?.name || 'Selected donor'
+    managerOutputs.push(`Recommended: ${donorLabel}`)
   }
 
   const riskCard = {

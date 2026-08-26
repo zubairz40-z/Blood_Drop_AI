@@ -40,6 +40,11 @@ export async function confirmDonation(donationId) {
   return data.donation
 }
 
+export async function createDonation({ requestId, donorId, units = 1 }) {
+  const { data } = await api.post('/api/donations', { requestId, donorId, units })
+  return normalizeDonation(data.donation)
+}
+
 /**
  * Cancels a pending donation (hospital action).
  *

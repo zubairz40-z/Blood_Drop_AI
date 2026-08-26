@@ -1,10 +1,19 @@
+import { useState } from 'react'
 import { Heart } from 'lucide-react'
 import Button from '../ui/Button'
 import FadeIn from '../motion/FadeIn'
+import { useNavigate } from 'react-router-dom'
 
 const amounts = ['৳100', '৳500', '৳1000']
 
 function SupportSection() {
+  const navigate = useNavigate()
+  const [selectedAmount, setSelectedAmount] = useState(amounts[0])
+
+  function openSupportPage() {
+    navigate(`/funding?amount=${encodeURIComponent(selectedAmount.replace('৳', ''))}`)
+  }
+
   return (
     <section id="support" className="py-20 sm:py-28 bg-bg scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,17 +28,23 @@ function SupportSection() {
             {amounts.map((a) => (
               <button
                 key={a}
-                className="w-24 py-3 text-sm font-semibold rounded-xl border border-border-dark bg-white text-text-dark hover:border-brand hover:text-brand transition-colors cursor-pointer"
+                type="button"
+                onClick={() => setSelectedAmount(a)}
+                className={`w-24 py-3 text-sm font-semibold rounded-xl border transition-colors cursor-pointer ${selectedAmount === a ? 'border-brand bg-brand-soft text-brand' : 'border-border-dark bg-white text-text-dark hover:border-brand hover:text-brand'}`}
               >
                 {a}
               </button>
             ))}
-            <button className="w-24 py-3 text-sm font-semibold rounded-xl border border-dashed border-border-dark bg-white text-text-muted hover:border-brand hover:text-brand transition-colors cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setSelectedAmount('custom')}
+              className={`w-24 py-3 text-sm font-semibold rounded-xl border border-dashed transition-colors cursor-pointer ${selectedAmount === 'custom' ? 'border-brand bg-brand-soft text-brand' : 'border-border-dark bg-white text-text-muted hover:border-brand hover:text-brand'}`}
+            >
               Custom
             </button>
           </div>
 
-          <Button size="lg" icon={Heart} className="px-8">
+          <Button type="button" size="lg" icon={Heart} onClick={openSupportPage} className="px-8">
             Support the Project
           </Button>
         </FadeIn>

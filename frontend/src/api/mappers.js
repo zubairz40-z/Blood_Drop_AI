@@ -276,6 +276,9 @@ export function bloodRequestFromApi(request) {
     hospital: request.hospital
       ? { id: request.hospital._id || request.hospital, name: request.hospital.name || null }
       : null,
+    matchedDonor: request.matchedDonor
+      ? { id: request.matchedDonor._id || request.matchedDonor, name: request.matchedDonor.name || null }
+      : null,
     location: fromGeoJson(request.location),
     patientNote: request.patientNote || '',
     rejectionReason: request.rejectionReason || null,

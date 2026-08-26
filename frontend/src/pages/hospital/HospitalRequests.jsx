@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Check, X, Inbox, Plus } from 'lucide-react'
 import PageHeader from '../../components/common/PageHeader'
@@ -12,6 +13,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import HospitalCreateRequestModal from '../../components/hospital/HospitalCreateRequestModal'
 import { fetchMyRequests, verifyBloodRequest, rejectBloodRequest, createBloodRequest } from '../../api/requestApi'
+import { createDonation } from '../../api/donationApi'
 import { bloodRequestFromApi, toComponentCode, toUrgencyCode } from '../../api/mappers'
 import { useAuth } from '../../context/AuthContext'
 
@@ -32,6 +34,9 @@ function RequestRow({ request, children }) {
           </div>
           {request.patientName && (
             <p className="text-xs text-text-dark mt-0.5 font-medium">{request.patientName}</p>
+          )}
+          {request.matchedDonor && (
+            <p className="text-xs text-emerald-700 mt-0.5 font-medium">Donor accepted: {request.matchedDonor.name}</p>
           )}
           <p className="text-xs text-text-muted mt-0.5">
             {request.componentLabel} · {request.unitsRequired}{' '}
@@ -55,6 +60,7 @@ function RequestRow({ request, children }) {
 }
 
 function HospitalRequests() {
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
@@ -68,6 +74,7 @@ function HospitalRequests() {
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState(null)
+  const [recordingDonation, setRecordingDonation] = useState(null)
 
   useEffect(() => {
     load()
@@ -143,6 +150,21 @@ function HospitalRequests() {
       setCreateError(err.response?.data?.message || 'Could not file the request.')
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleRecordDonation(request) {
+    if (!request.matchedDonor?.id) return
+    setRecordingDonation(request.id)
+    setError(null)
+    try {
+      await createDonation({ requestId: request.id, donorId: request.matchedDonor.id, units: request.unitsRequired })
+      setNotice(`${request.shortId} is ready for donation confirmation.`)
+      navigate('/hospital/donations')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not record the accepted donation.')
+    } finally {
+      setRecordingDonation(null)
     }
   }
 
@@ -236,7 +258,18 @@ function HospitalRequests() {
         ) : (
           <div className="space-y-3">
             {active.map((req) => (
-              <RequestRow key={req.id} request={req} />
+              <RequestRow key={req.id} request={req}>
+                {req.status === 'MATCHED' && req.matchedDonor && (
+                  <Button
+                    size="sm"
+                    loading={recordingDonation === req.id}
+                    disabled={recordingDonation !== null}
+                    onClick={() => handleRecordDonation(req)}
+                  >
+                    Record Donation
+                  </Button>
+                )}
+              </RequestRow>
             ))}
           </div>
         )}

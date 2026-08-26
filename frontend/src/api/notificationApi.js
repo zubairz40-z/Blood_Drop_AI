@@ -94,6 +94,7 @@ function normalizeNotification(n) {
     urgency: requestObj?.urgency || null,
     requestStatus: requestObj?.status || null,
     neededBy: requestObj?.neededBy || null,
+    hospitalName: requestObj?.hospital?.name || null,
     actionLabel: requestId ? 'View' : undefined,
     actionPath: requestId ? buildActionPath(n.type, requestId) : undefined,
   }

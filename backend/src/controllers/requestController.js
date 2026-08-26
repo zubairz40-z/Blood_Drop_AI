@@ -184,7 +184,8 @@ async function getMyRequests(req, res, next) {
     const requests = await BloodRequest.find(filter)
       .sort({ createdAt: -1 })
       .populate("hospital", "name email")
-      .populate("patient", "name");
+      .populate("patient", "name")
+      .populate("matchedDonor", "name email phone");
 
     res.json({ success: true, count: requests.length, requests });
   } catch (err) {
@@ -197,7 +198,8 @@ async function getRequestById(req, res, next) {
   try {
     const request = await BloodRequest.findById(req.params.id)
       .populate("hospital", "name email")
-      .populate("patient", "name");
+      .populate("patient", "name")
+      .populate("matchedDonor", "name email phone");
 
     if (!request) {
       return res.status(404).json({ success: false, message: "Request not found" });

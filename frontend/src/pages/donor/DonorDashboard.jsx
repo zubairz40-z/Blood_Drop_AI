@@ -13,6 +13,9 @@ import DonorQuickActions from '../../components/donor/DonorQuickActions'
 import { useAuth } from '../../context/AuthContext'
 import { fetchDonorProfile, setDonorAvailability } from '../../api/donorApi'
 import { donorProfileFromApi, eligibilityFromApi } from '../../api/mappers'
+import { fetchNotifications } from '../../api/notificationApi'
+import { respondToMatch } from '../../api/matchApi'
+import EmergencyRequestCard from '../../components/donor/EmergencyRequestCard'
 
 function DonorDashboard() {
   const navigate = useNavigate()
@@ -25,6 +28,8 @@ function DonorDashboard() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [matchNotifications, setMatchNotifications] = useState([])
+  const [respondingId, setRespondingId] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -33,7 +38,10 @@ function DonorDashboard() {
 
     async function load() {
       try {
-        const profile = await fetchDonorProfile()
+        const [profile, notificationResult] = await Promise.all([
+          fetchDonorProfile(),
+          fetchNotifications(),
+        ])
         if (cancelled) return
 
         setDonor({
@@ -43,6 +51,7 @@ function DonorDashboard() {
         setEligibility(eligibilityFromApi(profile))
         setAvailable(profile.isAvailable ?? true)
         setHasProfile(true)
+        setMatchNotifications(notificationResult.notifications.filter((n) => n.type === 'MATCH_FOUND'))
       } catch (err) {
         if (cancelled) return
         if (err.response?.status === 404) {
@@ -58,6 +67,22 @@ function DonorDashboard() {
     load()
     return () => { cancelled = true }
   }, [user])
+
+  async function respond(requestId, response) {
+    const notification = matchNotifications.find((item) => item.requestId === requestId)
+    if (!notification) return
+    setRespondingId(requestId)
+    setError(null)
+    try {
+      await respondToMatch(requestId, response)
+      const refreshed = await fetchNotifications()
+      setMatchNotifications(refreshed.notifications.filter((n) => n.type === 'MATCH_FOUND'))
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to respond to this match.')
+    } finally {
+      setRespondingId(null)
+    }
+  }
 
   async function handleToggleAvailability() {
     const previous = available
@@ -102,6 +127,31 @@ function DonorDashboard() {
       </div>
 
       {error && <Alert variant="error" onDismiss={() => setError(null)}>{error}</Alert>}
+
+      {matchNotifications.length > 0 && (
+        <Card title="Emergency Blood Matches">
+          <div className="space-y-3">
+            {matchNotifications.map((notification) => (
+              <EmergencyRequestCard
+                key={notification.id}
+                request={{
+                  id: notification.requestId,
+                  bloodGroup: notification.bloodGroup || '—',
+                  component: notification.component || '—',
+                  units: 1,
+                  hospitalName: notification.hospitalName || 'Hospital',
+                  urgency: notification.urgency || 'URGENT',
+                  expiresAt: notification.expiresAt,
+                  responded: notification.requestStatus === 'MATCHED' || notification.requestStatus === 'FULFILLED' ? 'ACCEPT' : null,
+                }}
+                onAccept={(id) => respond(id, 'ACCEPT')}
+                onDecline={(id) => respond(id, 'DECLINE')}
+                responding={respondingId === notification.requestId}
+              />
+            ))}
+          </div>
+        </Card>
+      )}
 
       {!hasProfile ? (
         <Card>

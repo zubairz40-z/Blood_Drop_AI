@@ -68,6 +68,23 @@ function RequestTracking() {
     return () => { cancelled = true }
   }, [requestId])
 
+  useEffect(() => {
+    let cancelled = false
+    const refreshStatus = async () => {
+      try {
+        const data = await fetchRequestById(requestId)
+        if (!cancelled) setRequest(bloodRequestFromApi(data))
+      } catch {
+        // Keep the current state if a background refresh is unavailable.
+      }
+    }
+    const timer = setInterval(refreshStatus, 4000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [requestId])
+
   function openEdit() {
     setEditForm({
       units: String(request.unitsRequired),
