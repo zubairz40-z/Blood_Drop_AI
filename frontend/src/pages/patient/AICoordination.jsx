@@ -4,8 +4,8 @@ import { motion } from 'framer-motion'
 import { BrainCircuit, Users, ShieldCheck, MapPin, ArrowDown, SearchX, AlertTriangle } from 'lucide-react'
 import PageHeader from '../../components/common/PageHeader'
 import Badge from '../../components/ui/Badge'
-import Button from '../../components/ui/Button'
 import Alert from '../../components/ui/Alert'
+import Button from '../../components/ui/Button'
 import EmptyState from '../../components/ui/EmptyState'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import AIAgentCard from '../../components/ai/AIAgentCard'
@@ -14,21 +14,15 @@ import RiskAdvisorStatus from '../../components/ai/RiskAdvisorStatus'
 import NotificationStatusCard from '../../components/ai/NotificationStatusCard'
 import { coordinateBloodRequest } from '../../api/aiApi'
 import { fetchRequestById } from '../../api/requestApi'
-import { mockMatchResult } from '../../mocks/milestoneC/matchMock'
-import { bloodRequestFromApi, toUrgencyCode } from '../../api/mappers'
-
-// Temporary eligibility/geo structured input until Arefa's real agents are merged
-const TEMP_ELIGIBILITY = {
-  eligibleDonorIds: mockMatchResult.candidates.filter(c => c.eligible).map(c => c.donorId),
-}
-const TEMP_GEO = {
-  rankedDonorIds: mockMatchResult.candidates.map(c => c.donorId),
-}
+import { bloodRequestFromApi } from '../../api/mappers'
+import BloodDropMap from '../../components/maps/BloodDropMap'
+import { normalizeCoordinates } from '../../utils/locationUtils'
 
 const emergencyVariant = {
   CRITICAL: 'error',
   URGENT: 'warning',
   NORMAL: 'info',
+  ROUTINE: 'info',
 }
 
 const actionLabel = {
@@ -62,36 +56,14 @@ function AICoordination() {
       setLoading(true)
       setError(null)
       try {
-        // First fetch the real request so we can pass accurate metadata to the orchestrator
-        const reqData = await fetchRequestById(requestId)
-        if (cancelled) return
-        const mapped = bloodRequestFromApi(reqData)
-        setRequestInfo(mapped)
-
-        const payload = {
-          request: {
-            id: requestId,
-            urgency: toUrgencyCode(mapped.urgency),
-            bloodGroup: mapped.bloodGroup,
-            component: mapped.component,
-            unitsRequired: mapped.unitsRequired,
-          },
-          // temporary structured data until Arefa's real agents are merged
-          matchingResult: mockMatchResult,
-          eligibilityResult: TEMP_ELIGIBILITY,
-          geoResult: TEMP_GEO,
-          riskContext: {
-            requestCountRecent: 0,
-            emergencyRequestsRecent: 0,
-            cancelledRequestsRecent: 0,
-            donorActivityCount: 0,
-            emergencyResponseMinutes: 0,
-            bloodGroupDemandCount: 0,
-          },
+        const [aiResult, reqData] = await Promise.all([
+          coordinateBloodRequest(requestId),
+          fetchRequestById(requestId).catch(() => null),
+        ])
+        if (!cancelled) {
+          setResult(aiResult)
+          if (reqData) setRequestInfo(bloodRequestFromApi(reqData))
         }
-
-        const data = await coordinateBloodRequest(payload)
-        if (!cancelled) setResult(data)
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -108,7 +80,6 @@ function AICoordination() {
     return () => { cancelled = true }
   }, [requestId])
 
-  // --- loading ---
   if (loading) {
     return (
       <div className="space-y-6 max-w-5xl">
@@ -124,7 +95,6 @@ function AICoordination() {
     )
   }
 
-  // --- error ---
   if (error) {
     return (
       <motion.div
@@ -147,7 +117,6 @@ function AICoordination() {
     )
   }
 
-  // --- no result (should not happen, but guard) ---
   if (!result) {
     return (
       <motion.div
@@ -170,69 +139,80 @@ function AICoordination() {
     )
   }
 
-  // --- Build card data from real orchestrator output ---
   const actionText = actionLabel[result.nextAction] || result.nextAction
-  const eligibleCount = result.eligibilityResult?.eligibleDonorIds?.length || 0
-  const nearestCandidate = mockMatchResult.candidates.find(c => c.donorId === result.recommendedDonor)
-  const nearestDistance = nearestCandidate?.distanceKm ?? '—'
+  const info = result.requestInfo || {}
+  const selection = result.selection || {}
+  const eligibility = result.eligibilityResult || {}
+  const geo = result.geoResult || {}
+  const agentStatus = result.agentStatus || {}
+
+  // Build map markers from request location
+  const requestCoords = normalizeCoordinates(requestInfo?.location)
+  const mapMarkers = requestCoords
+    ? [{ ...requestCoords, type: 'request', label: info.bloodGroup || 'Request', sublabel: info.component || '' }]
+    : []
+
+  const candidates = selection.selection?.candidates || []
+  const recommendedCandidate = candidates.find(c => c.donorId === result.recommendedDonor)
+
+  const matchingOutputs = [
+    `Reviewed ${candidates.length} candidates`,
+    `${candidates.filter(c => c.eligible).length} compatible`,
+  ]
+  if (selection.primary) {
+    matchingOutputs.push(`Primary selected: ${selection.primary}`)
+  }
+  if (selection.decisive) {
+    matchingOutputs.push('Decisive selection')
+  }
+
+  const eligibleCount = (eligibility.eligibleNow || []).length
+  const eligibleLaterCount = (eligibility.eligibleLater || []).length
+  const excludedCount = (eligibility.excluded || []).length
+
+  const eligibilityOutputs = [
+    `${eligibleCount} eligible now`,
+    `${eligibleLaterCount} eligible later`,
+    `${excludedCount} excluded`,
+  ]
+
+  const nearestCandidate = geo.estimated?.[0]
+  const geoOutputs = [
+    `${(geo.ordered || []).length} donors ranked by distance`,
+  ]
+  if (nearestCandidate) {
+    geoOutputs.push(`Nearest: ${nearestCandidate.distanceKm} km, ETA ${nearestCandidate.etaMinutes} min`)
+  }
 
   const managerOutputs = [
-    `Risk assessed: ${result.risk} (score ${result.riskScore})`,
+    `Risk: ${result.risk} (score ${result.riskScore})`,
     `Next action: ${result.nextAction}`,
   ]
   if (result.recommendedDonor) {
-    managerOutputs.push(`Recommended donor selected`)
-  }
-
-  const matchingCandidatesReviewed = mockMatchResult.candidates.length
-  const matchingCompatible = mockMatchResult.candidates.filter(c => c.eligible).length
-
-  const managerCard = {
-    status: 'COMPLETED',
-    description: 'The coordination workflow has been processed by the AI Orchestrator.',
-    outputs: managerOutputs,
-  }
-
-  const matchingCard = {
-    status: 'COMPLETED',
-    description: 'Compatible donor candidates reviewed (temporary structured input).',
-    candidatesReviewed: matchingCandidatesReviewed,
-    compatibleCandidates: matchingCompatible,
-    criteria: ['Blood compatibility', 'Donation type', 'Availability'],
-  }
-
-  const eligibilityCard = {
-    status: 'COMPLETED',
-    description: 'Candidate eligibility reviewed (temporary structured input).',
-    eligibleCandidates: eligibleCount,
-  }
-
-  const geoCard = {
-    status: 'COMPLETED',
-    description: 'Nearby candidate distances compared (temporary structured input).',
-    nearestDistance,
+    managerOutputs.push(`Recommended: ${result.recommendedDonor}`)
   }
 
   const riskCard = {
     status: 'MONITORING',
-    urgency: 'URGENT',
+    urgency: info.urgency || 'URGENT',
     advisory: result.explanation,
   }
 
   const bestMatch = result.recommendedDonor
     ? {
         id: result.recommendedDonor,
-        bloodGroup: 'O+',
-        donationType: 'Whole Blood',
-        distance: nearestCandidate?.distanceKm ?? '—',
+        bloodGroup: info.bloodGroup || '—',
+        donationType: info.component || '—',
+        distance: recommendedCandidate?.distanceKm ?? nearestCandidate?.distanceKm ?? '—',
         availability: 'Available',
-        factors: nearestCandidate?.reasons || ['Compatible', 'Eligible', 'Available'],
+        factors: recommendedCandidate?.reasons || ['Compatible', 'Eligible', 'Available'],
       }
     : null
 
   const notificationCard = {
     sentStatus: result.nextAction === 'CONTACT_PRIMARY_DONOR' ? 'SENT' : 'PENDING',
-    responseStatus: result.nextAction === 'CONTACT_PRIMARY_DONOR' ? 'WAITING RESPONSE' : actionText,
+    responseStatus: actionText,
+    wave: selection.wave || null,
   }
 
   return (
@@ -242,49 +222,55 @@ function AICoordination() {
       transition={{ duration: 0.3 }}
       className="space-y-6 max-w-5xl"
     >
-      {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <PageHeader
             title="AI Coordination"
-            description="See how BloodDrop coordinates matching, eligibility, location, and donor response for this request."
+            description="Five-agent coordination pipeline running server-side."
             onBack={() => navigate(`/patient/requests/${requestId}/tracking`)}
           />
         </div>
         <div className="flex items-center gap-2 self-start">
           <span className="text-sm text-text-muted">Request ID</span>
           <span className="text-sm font-semibold text-text-dark">{result.requestId}</span>
-          <Badge variant={emergencyVariant[requestInfo?.urgency] || 'neutral'}>{requestInfo?.urgency || 'URGENT'}</Badge>
+          <Badge variant={emergencyVariant[info.urgency] || 'neutral'}>{info.urgency || '—'}</Badge>
           <Badge variant="info">{actionText}</Badge>
         </div>
       </div>
 
       <Alert variant="info" className="text-xs">
         <span className="font-medium">Live orchestration.</span>{' '}
-        AI Manager and Risk &amp; Advisor are running through the backend orchestrator.
-        Matching, eligibility and geo outputs are using temporary contract data until the remaining agents are integrated.
+        All five agents run server-side: Donor Matching, Eligibility &amp; Scheduling,
+        Geo Coordination, Risk &amp; Advisor, and AI Manager.
       </Alert>
 
-      {/* Request summary bar */}
       <div className="flex flex-wrap items-center gap-2 p-4 bg-white border border-border rounded-2xl shadow-card">
         <div className="w-9 h-9 rounded-lg bg-blood-soft flex items-center justify-center">
-          <span className="text-xs font-bold text-blood">{requestInfo?.bloodGroup || '—'}</span>
+          <span className="text-xs font-bold text-blood">{info.bloodGroup || '—'}</span>
         </div>
-        <span className="text-sm font-medium text-text-dark">{requestInfo?.componentLabel || '—'}</span>
-        <span className="text-xs text-text-muted">{requestInfo?.unitsRequired ?? '—'} {requestInfo?.unitsRequired === 1 ? 'unit' : 'units'}</span>
-        <Badge variant={emergencyVariant[requestInfo?.urgency] || 'neutral'}>{requestInfo?.urgency || '—'}</Badge>
+        <span className="text-sm font-medium text-text-dark">{info.component || '—'}</span>
+        <span className="text-xs text-text-muted">{info.unitsRequired ?? '—'} {info.unitsRequired === 1 ? 'unit' : 'units'}</span>
+        <Badge variant={emergencyVariant[info.urgency] || 'neutral'}>{info.urgency || '—'}</Badge>
         <Badge variant="info">{actionText}</Badge>
-        <span className="text-xs text-text-muted ml-auto">{requestInfo?.hospital?.name || '—'}</span>
       </div>
 
-      {/* Agent flow */}
+      {/* Location visualization */}
+      <div>
+        <BloodDropMap markers={mapMarkers} height="300px" />
+        {nearestCandidate && (
+          <p className="text-xs text-text-muted mt-2">
+            Nearest donor: {nearestCandidate.distanceKm} km away, estimated ETA ~{nearestCandidate.etaMinutes} min (assumes {result.requestInfo?.assumedSpeedKmh || 25} km/h).
+          </p>
+        )}
+      </div>
+
       <div className="space-y-1">
         <AIAgentCard
           icon={BrainCircuit}
           title="AI Manager"
-          status={managerCard.status}
-          description={managerCard.description}
-          outputs={managerCard.outputs}
+          status={agentStatus.manager || 'COMPLETED'}
+          description="Top-level coordination agent producing the final recommendation."
+          outputs={managerOutputs}
         />
 
         <Connector />
@@ -293,43 +279,35 @@ function AICoordination() {
           <AIAgentCard
             icon={Users}
             title="Donor Matching"
-            status={matchingCard.status}
-            description={matchingCard.description}
+            status={agentStatus.matching === 'COMPLETED' ? 'COMPLETED' : agentStatus.matching || 'PENDING'}
+            description="Selects primary and backup donors from scored candidates."
+            outputs={matchingOutputs}
           >
             <div className="mt-3 pt-3 border-t border-border">
               <div className="grid grid-cols-2 gap-2">
                 <div className="text-center p-2 bg-surface-soft rounded-lg">
-                  <p className="text-lg font-bold text-text-dark">{matchingCard.candidatesReviewed}</p>
+                  <p className="text-lg font-bold text-text-dark">{candidates.length}</p>
                   <p className="text-[10px] text-text-muted">Reviewed</p>
                 </div>
                 <div className="text-center p-2 bg-surface-soft rounded-lg">
-                  <p className="text-lg font-bold text-brand">{matchingCard.compatibleCandidates}</p>
+                  <p className="text-lg font-bold text-brand">{candidates.filter(c => c.eligible).length}</p>
                   <p className="text-[10px] text-text-muted">Compatible</p>
                 </div>
               </div>
-              {matchingCard.criteria && (
-                <ul className="mt-3 space-y-1">
-                  {matchingCard.criteria.map((c, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-text-secondary">
-                      <span className="text-emerald-500 mt-0.5 shrink-0">&#10003;</span>
-                      {c}
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
           </AIAgentCard>
 
           <AIAgentCard
             icon={ShieldCheck}
-            title="Eligibility & Scheduling"
-            status={eligibilityCard.status}
-            description={eligibilityCard.description}
+            title="Eligibility &amp; Scheduling"
+            status={agentStatus.eligibility === 'COMPLETED' ? 'COMPLETED' : agentStatus.eligibility || 'PENDING'}
+            description="Per-donor eligibility assessment with timing details."
+            outputs={eligibilityOutputs}
           >
             <div className="mt-3 pt-3 border-t border-border">
               <div className="text-center p-2 bg-surface-soft rounded-lg">
-                <p className="text-lg font-bold text-brand">{eligibilityCard.eligibleCandidates}</p>
-                <p className="text-[10px] text-text-muted">Eligible candidates</p>
+                <p className="text-lg font-bold text-brand">{eligibleCount}</p>
+                <p className="text-[10px] text-text-muted">Eligible now</p>
               </div>
             </div>
           </AIAgentCard>
@@ -337,12 +315,15 @@ function AICoordination() {
           <AIAgentCard
             icon={MapPin}
             title="Geo Coordination"
-            status={geoCard.status}
-            description={geoCard.description}
+            status={agentStatus.geo === 'COMPLETED' ? 'COMPLETED' : agentStatus.geo || 'PENDING'}
+            description="Distance-sorted ranking with ETA estimates."
+            outputs={geoOutputs}
           >
             <div className="mt-3 pt-3 border-t border-border">
               <div className="text-center p-2 bg-surface-soft rounded-lg">
-                <p className="text-lg font-bold text-brand">{geoCard.nearestDistance} km</p>
+                <p className="text-lg font-bold text-brand">
+                  {nearestCandidate ? `${nearestCandidate.distanceKm} km` : '—'}
+                </p>
                 <p className="text-[10px] text-text-muted">Nearest compatible</p>
               </div>
             </div>
@@ -365,7 +346,6 @@ function AICoordination() {
         <NotificationStatusCard notification={notificationCard} />
       </div>
 
-      {/* Footer */}
       <div className="flex justify-center gap-3 pt-2 pb-4">
         <Button
           variant="secondary"
@@ -378,7 +358,9 @@ function AICoordination() {
 
       <div className="flex justify-center pt-2 pb-4">
         <p className="text-xs text-text-muted text-center max-w-md">
-          AI Manager and Risk &amp; Advisor are live backend modules. Matching, eligibility and geo outputs are temporary structured inputs until Arefa&apos;s agents are merged.
+          All five agents run server-side in the AI Orchestrator.
+          Matching, eligibility, geolocation, risk assessment, and final recommendation
+          are computed from real database data.
         </p>
       </div>
     </motion.div>

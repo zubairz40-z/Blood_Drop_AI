@@ -1,36 +1,38 @@
 /**
  * AI Controller — exposes the AI Orchestrator through a minimal REST endpoint.
  *
- * Matching, eligibility, and geo results are currently sent by the frontend
- * as temporary structured input. This allows the frontend to display real
- * orchestrator output while Arefa's real agents are built independently.
+ * POST /api/ai/coordinate
  *
- * Later integration will replace these client-supplied inputs with
- * server-side agent calls without changing the frontend output contract.
+ * Accepts either:
+ *   { requestId }                    — real server-side flow (calls all 5 agents)
+ *   { request, matchingResult, ... } — legacy injected-input flow (tests, compat)
  */
 
-const { coordinateRequest } = require("../services/aiOrchestrator");
+const { coordinateRequest, coordinateRealRequest } = require("../services/aiOrchestrator");
 
 /**
  * POST /api/ai/coordinate
  *
- * Runs the AI Orchestrator on the supplied data and returns the
- * deterministic coordination result. No database writes, no LLM calls.
+ * If the body contains `requestId`, runs the full real-agent pipeline.
+ * Otherwise falls back to the injected-input path for backward compat.
  */
 async function coordinateBloodRequest(req, res, next) {
   try {
-    const {
-      request,
-      matchingResult,
-      eligibilityResult,
-      geoResult,
-      riskContext,
-    } = req.body || {};
+    const body = req.body || {};
+
+    // --- New path: real server-side agents ---
+    if (body.requestId) {
+      const result = await coordinateRealRequest({ requestId: body.requestId });
+      return res.status(200).json({ success: true, result });
+    }
+
+    // --- Legacy path: client-injected inputs ---
+    const { request, matchingResult, eligibilityResult, geoResult, riskContext } = body;
 
     if (!request || !request.id) {
       return res.status(400).json({
         success: false,
-        message: "A valid request object with an id is required.",
+        message: "A valid requestId or request object with an id is required.",
       });
     }
 

@@ -1,24 +1,109 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Siren } from 'lucide-react'
 import PageHeader from '../../components/common/PageHeader'
 import Card from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
 import EmptyState from '../../components/ui/EmptyState'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import EmergencyRequestCard from '../../components/donor/EmergencyRequestCard'
-import { demoDonorRequests, emergencyLevelConfig } from '../../data/demoDonorRequests'
-
-const filters = ['All', 'CRITICAL', 'URGENT', 'NORMAL']
+import { fetchNotifications } from '../../api/notificationApi'
+import { respondToMatch } from '../../api/matchApi'
 
 function DonorEmergencyRequests() {
-  const [activeFilter, setActiveFilter] = useState('All')
+  const [notifications, setNotifications] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [respondingId, setRespondingId] = useState(null)
+  const [respondedMap, setRespondedMap] = useState({})
+  const [error, setError] = useState(null)
 
-  const filteredRequests = useMemo(() => {
-    if (activeFilter === 'All') return demoDonorRequests
-    return demoDonorRequests.filter((r) => r.emergencyLevel === activeFilter)
-  }, [activeFilter])
+  const load = useCallback(async () => {
+    try {
+      const result = await fetchNotifications()
+      const matchNotifications = result.notifications.filter(
+        (n) => n.type === 'MATCH_FOUND'
+      )
+      setNotifications(matchNotifications)
+    } catch {
+      // Leave state as-is on error
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  const pendingCount = demoDonorRequests.filter((r) => r.status === 'PENDING').length
+  useEffect(() => {
+    let cancelled = false
+    load().then(() => { if (cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [load])
+
+  const pendingCount = useMemo(
+    () => notifications.filter((n) => !n.read && !respondedMap[n.id]).length,
+    [notifications, respondedMap]
+  )
+
+  async function handleAccept(requestId) {
+    const notification = notifications.find((n) => n.requestId === requestId)
+    if (!notification) return
+
+    setRespondingId(requestId)
+    setError(null)
+    try {
+      await respondToMatch(requestId, 'ACCEPT')
+      setRespondedMap((prev) => ({ ...prev, [notification.id]: 'ACCEPT' }))
+    } catch (err) {
+      const status = err.response?.status
+      const msg = err.response?.data?.message
+      if (status === 409) {
+        setError('This match offer has expired. The system has moved on to the next donor.')
+        setRespondedMap((prev) => ({ ...prev, [notification.id]: 'EXPIRED' }))
+      } else if (status === 400) {
+        setError(msg || 'Invalid response. Please try again.')
+      } else if (status === 403) {
+        setError('You are not authorized to respond to this request.')
+      } else if (status === 404) {
+        setError('This request was not found.')
+      } else {
+        setError(msg || 'Unable to process your response. Please try again.')
+      }
+    } finally {
+      setRespondingId(null)
+    }
+  }
+
+  async function handleDecline(requestId) {
+    const notification = notifications.find((n) => n.requestId === requestId)
+    if (!notification) return
+
+    setRespondingId(requestId)
+    setError(null)
+    try {
+      await respondToMatch(requestId, 'DECLINE')
+      setRespondedMap((prev) => ({ ...prev, [notification.id]: 'DECLINE' }))
+    } catch (err) {
+      const status = err.response?.status
+      const msg = err.response?.data?.message
+      if (status === 409) {
+        setError('This match offer has expired.')
+        setRespondedMap((prev) => ({ ...prev, [notification.id]: 'EXPIRED' }))
+      } else {
+        setError(msg || 'Unable to process your response. Please try again.')
+      }
+    } finally {
+      setRespondingId(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Emergency Requests" description="Loading..." />
+        <div className="flex justify-center py-24">
+          <LoadingSpinner />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <motion.div
@@ -32,30 +117,19 @@ function DonorEmergencyRequests() {
           title="Emergency Requests"
           description="Review compatible blood requests near you and respond based on your availability."
         />
-        <Badge variant="warning">Pending: {pendingCount}</Badge>
+        {pendingCount > 0 && (
+          <Badge variant="warning">Pending: {pendingCount}</Badge>
+        )}
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {filters.map((filter) => {
-          const config = filter !== 'All' ? emergencyLevelConfig[filter] : null
-          return (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${
-                activeFilter === filter
-                  ? 'bg-brand-soft border-brand text-brand'
-                  : 'bg-white border-border text-text-secondary hover:bg-neutral-50'
-              }`}
-            >
-              {filter === 'All' ? 'All' : config?.label || filter}
-            </button>
-          )
-        })}
-      </div>
+      {error && (
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800">
+          {error}
+        </div>
+      )}
 
       <Card>
-        {filteredRequests.length === 0 ? (
+        {notifications.length === 0 ? (
           <EmptyState
             icon={Siren}
             title="No emergency requests right now"
@@ -63,9 +137,30 @@ function DonorEmergencyRequests() {
           />
         ) : (
           <div className="space-y-3">
-            {filteredRequests.map((request) => (
-              <EmergencyRequestCard key={request.id} request={request} />
-            ))}
+            {notifications.map((n) => {
+              const responded = respondedMap[n.id]
+              return (
+                <EmergencyRequestCard
+                  key={n.id}
+                  request={{
+                    id: n.requestId,
+                    bloodGroup: n.bloodGroup || '—',
+                    component: n.component || '—',
+                    units: 1,
+                    hospitalName: '—',
+                    urgency: n.urgency || 'EMERGENCY',
+                    wave: n.wave,
+                    expiresAt: n.expiresAt,
+                    distanceKm: null,
+                    etaMinutes: null,
+                    responded: responded || null,
+                  }}
+                  onAccept={handleAccept}
+                  onDecline={handleDecline}
+                  responding={respondingId === n.requestId}
+                />
+              )
+            })}
           </div>
         )}
       </Card>

@@ -131,9 +131,19 @@ function Register() {
     setGoogleLoading(true)
 
     try {
-      const { user } = await signInWithGoogle()
-      const name = user.displayName || form.name || ''
-      const phone = form.phone || ''
+      const result = await signInWithGoogle()
+
+      // If BloodDrop profile already exists, just go to dashboard
+      if (result.status === 'existing') {
+        setProfile(result.user)
+        navigate(DASHBOARD_BY_ROLE[result.user.role] || '/', { replace: true })
+        return
+      }
+
+      // New user — get name/phone from Google result or form fields
+      const gInfo = result.googleInfo || {}
+      const name = gInfo.name || form.name || ''
+      const phone = gInfo.phone || form.phone || ''
       const { data } = await api.post('/api/auth/register', {
         name,
         role: form.role.toLowerCase(),
@@ -151,8 +161,8 @@ function Register() {
         setGoogleLoading(false)
         return
       }
-      await signOut(auth)
-      navigate('/login', { replace: true })
+      setProfile(data.user)
+      navigate(DASHBOARD_BY_ROLE[form.role.toLowerCase()] || '/', { replace: true })
     } catch (err) {
       if (err.code === 'auth/popup-closed-by-user') {
         setGoogleLoading(false)

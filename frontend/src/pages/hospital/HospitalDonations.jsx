@@ -1,23 +1,28 @@
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import PageHeader from '../../components/common/PageHeader'
 import Badge from '../../components/ui/Badge'
 import Card from '../../components/ui/Card'
 import Table from '../../components/ui/Table'
-import { demoInProgressDonations, demoCompletedDonations } from '../../data/demoHospitalData'
+import Button from '../../components/ui/Button'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { fetchPendingDonations, confirmDonation } from '../../api/donationApi'
+import { toComponentLabel } from '../../api/mappers'
 
 const statusVariant = {
-  'IN PROGRESS': 'warning',
-  COMPLETED: 'success',
+  PENDING: 'warning',
+  CONFIRMED: 'success',
+  CANCELLED: 'error',
 }
 
-const inProgressColumns = [
+const pendingColumns = [
   {
     key: 'id',
-    header: 'Request',
-    render: (val) => <span className="font-medium text-text-dark">{val}</span>,
+    header: 'Donation ID',
+    render: (val) => <span className="font-medium text-text-dark">{String(val).slice(-8)}</span>,
   },
   {
-    key: 'donorId',
+    key: 'donorName',
     header: 'Donor',
     render: (val) => <span className="font-medium text-text-dark">{val}</span>,
   },
@@ -30,45 +35,78 @@ const inProgressColumns = [
       </div>
     ),
   },
-  { key: 'donationType', header: 'Donation Type' },
   {
-    key: 'status',
-    header: 'Status',
-    render: (val) => <Badge variant={statusVariant[val] || 'neutral'}>{val}</Badge>,
-  },
-  { key: 'startedAt', header: 'Started' },
-]
-
-const completedColumns = [
-  {
-    key: 'id',
-    header: 'Request',
-    render: (val) => <span className="font-medium text-text-dark">{val}</span>,
+    key: 'component',
+    header: 'Component',
+    render: (val) => toComponentLabel(val) || val,
   },
   {
-    key: 'bloodGroup',
-    header: 'Blood Group',
-    render: (val) => (
-      <div className="w-9 h-9 rounded-lg bg-blood-soft flex items-center justify-center">
-        <span className="text-xs font-bold text-blood">{val}</span>
-      </div>
-    ),
-  },
-  { key: 'donationType', header: 'Type' },
-  {
-    key: 'donorId',
-    header: 'Donor',
-    render: (val) => <span className="font-medium text-text-dark">{val}</span>,
+    key: 'units',
+    header: 'Units',
+    render: (val) => `${val} unit${val === 1 ? '' : 's'}`,
   },
   {
     key: 'status',
     header: 'Status',
     render: (val) => <Badge variant={statusVariant[val] || 'neutral'}>{val}</Badge>,
   },
-  { key: 'completedAt', header: 'Completed' },
+  {
+    key: 'donatedAt',
+    header: 'Donated',
+    render: (val) => val ? new Date(val).toLocaleDateString() : '—',
+  },
 ]
 
 function HospitalDonations() {
+  const [donations, setDonations] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [confirmingId, setConfirmingId] = useState(null)
+
+  const load = useCallback(async () => {
+    try {
+      const data = await fetchPendingDonations()
+      setDonations(data || [])
+    } catch {
+      // Leave state as-is
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    load().then(() => { if (cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [load])
+
+  async function handleConfirm(donationId) {
+    setConfirmingId(donationId)
+    try {
+      await confirmDonation(donationId)
+      // Remove from pending list after confirmation
+      setDonations((prev) => prev.filter((d) => d.id !== donationId))
+    } catch {
+      // Leave in list on error
+    } finally {
+      setConfirmingId(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Donations" description="Loading..." />
+        <div className="flex justify-center py-24">
+          <LoadingSpinner />
+        </div>
+      </div>
+    )
+  }
+
+  // Separate confirmed and pending
+  const pending = donations.filter((d) => d.status === 'PENDING')
+  const confirmed = donations.filter((d) => d.status !== 'PENDING')
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -80,29 +118,48 @@ function HospitalDonations() {
         <div className="flex items-center gap-2">
           <PageHeader
             title="Donations"
-            description="Track donation progress and completed donations."
+            description="Track donation progress and confirm completed donations."
           />
           <Badge variant="role-hospital">Hospital</Badge>
         </div>
       </div>
 
-      <Card title="Donation In Progress">
+      <Card title="Pending Confirmation">
         <Table
-          columns={inProgressColumns}
-          data={demoInProgressDonations}
+          columns={[
+            ...pendingColumns,
+            {
+              key: '_actions',
+              header: '',
+              render: (_, row) => (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleConfirm(row.id)}
+                  disabled={confirmingId === row.id}
+                  loading={confirmingId === row.id}
+                >
+                  Confirm
+                </Button>
+              ),
+            },
+          ]}
+          data={pending}
           rowKey="id"
-          emptyMessage="No donations currently in progress."
+          emptyMessage="No donations pending confirmation."
         />
       </Card>
 
-      <Card title="Completed Donations">
-        <Table
-          columns={completedColumns}
-          data={demoCompletedDonations}
-          rowKey="id"
-          emptyMessage="No completed donations yet."
-        />
-      </Card>
+      {confirmed.length > 0 && (
+        <Card title="Confirmed Donations">
+          <Table
+            columns={pendingColumns}
+            data={confirmed}
+            rowKey="id"
+            emptyMessage="No confirmed donations yet."
+          />
+        </Card>
+      )}
     </motion.div>
   )
 }

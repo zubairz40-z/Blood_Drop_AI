@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { SearchX, Building2 } from 'lucide-react'
@@ -8,125 +8,135 @@ import Button from '../../components/ui/Button'
 import Card from '../../components/ui/Card'
 import Alert from '../../components/ui/Alert'
 import EmptyState from '../../components/ui/EmptyState'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import BloodDropMap from '../../components/maps/BloodDropMap'
-import NearbyDonorList from '../../components/maps/NearbyDonorList'
-import { demoMapData } from '../../data/demoMapData'
+import { fetchRequestById } from '../../api/requestApi'
+import { bloodRequestFromApi } from '../../api/mappers'
+import { normalizeCoordinates } from '../../utils/locationUtils'
 
 const emergencyVariant = {
   CRITICAL: 'error',
   URGENT: 'warning',
   NORMAL: 'info',
+  ROUTINE: 'info',
 }
 
 function RequestMap() {
   const { requestId } = useParams()
   const navigate = useNavigate()
-  const [selectedDonorId, setSelectedDonorId] = useState(null)
-  const mapData = demoMapData[requestId]
+  const [request, setRequest] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  if (!mapData) {
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      try {
+        const data = await fetchRequestById(requestId)
+        if (!cancelled) setRequest(bloodRequestFromApi(data))
+      } catch {
+        if (!cancelled) setError('Unable to load request location data.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [requestId])
+
+  if (loading) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="max-w-2xl mx-auto"
-      >
+      <div className="space-y-6 max-w-6xl">
+        <PageHeader title="Request Map" description="Loading..." onBack={() => navigate('/patient/requests')} />
+        <div className="flex justify-center py-24"><LoadingSpinner /></div>
+      </div>
+    )
+  }
+
+  if (error || !request) {
+    return (
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="max-w-2xl mx-auto">
         <EmptyState
           icon={SearchX}
-          title="Map data not found"
-          description="No demo location information is available for this request."
-          action={
-            <Button onClick={() => navigate('/patient/requests')}>
-              Back to My Requests
-            </Button>
-          }
+          title="Request not found"
+          description={error || 'No location information is available for this request.'}
+          action={<Button onClick={() => navigate('/patient/requests')}>Back to My Requests</Button>}
         />
       </motion.div>
     )
   }
 
+  const requestCoords = normalizeCoordinates(request.location)
+  const mapMarkers = requestCoords
+    ? [{ ...requestCoords, type: 'request', label: request.shortId || requestId, sublabel: request.hospital?.name || '' }]
+    : []
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-6 max-w-6xl"
-    >
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6 max-w-6xl">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
           title="Request Map"
-          description="View the approximate coordination area, hospital destination, and nearby donor options for this request."
+          description="View the approximate location for this blood request."
           onBack={() => navigate(`/patient/requests/${requestId}/tracking`)}
         />
         <div className="flex items-center gap-2 self-start">
           <span className="text-sm text-text-muted">Request ID</span>
-          <span className="text-sm font-semibold text-text-dark">{mapData.requestId}</span>
-          <Badge variant={emergencyVariant[mapData.emergencyLevel] || 'neutral'}>
-            {mapData.emergencyLevel}
-          </Badge>
+          <span className="text-sm font-semibold text-text-dark">{request.shortId}</span>
+          <Badge variant={emergencyVariant[request.urgency] || 'neutral'}>{request.urgency}</Badge>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <Badge variant="info">{mapData.bloodGroup}</Badge>
-        <Badge variant="neutral">{mapData.donationType}</Badge>
-        <Badge variant="neutral">{mapData.units} {mapData.units === 1 ? 'unit' : 'units'}</Badge>
+        <Badge variant="info">{request.bloodGroup}</Badge>
+        <Badge variant="neutral">{request.componentLabel || request.component}</Badge>
+        <Badge variant="neutral">{request.unitsRequired} {request.unitsRequired === 1 ? 'unit' : 'units'}</Badge>
       </div>
-
-      <Alert variant="info" className="text-xs">
-        <span className="font-medium">Demo location view.</span>{' '}
-        Locations and distances shown here are frontend demo data. No live donor tracking or Maps service is connected.
-      </Alert>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <BloodDropMap
-            data={mapData}
-            selectedDonorId={selectedDonorId}
-            onSelectDonor={setSelectedDonorId}
-          />
-          <p className="text-[10px] text-text-muted mt-2">
-            For privacy, donor locations are shown only as approximate coordination areas in this demo.
-          </p>
+          <BloodDropMap markers={mapMarkers} height="400px" />
+          {!requestCoords && (
+            <Alert variant="warning" className="text-xs mt-2">
+              Location coordinates are not available for this request. The hospital address is shown below.
+            </Alert>
+          )}
         </div>
 
         <div className="lg:col-span-1 space-y-4">
-          <Card title="Nearby Donors">
-            <NearbyDonorList
-              donors={mapData.donors}
-              selectedId={selectedDonorId}
-              onSelect={setSelectedDonorId}
-            />
-          </Card>
-
-          <Card>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-brand-soft flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5 text-brand" />
+          <Card title="Request Details">
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blood-soft flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-blood">{request.bloodGroup}</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-text-dark">{request.componentLabel || request.component}</p>
+                  <p className="text-xs text-text-muted">{request.unitsRequired} unit{request.unitsRequired === 1 ? '' : 's'} needed</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-text-muted">Hospital Destination</p>
-                <p className="text-sm font-semibold text-text-dark">{mapData.hospital.name}</p>
-                <p className="text-xs text-text-muted mt-0.5">{mapData.hospital.area}</p>
-                <p className="text-xs text-text-muted">{mapData.requestId}</p>
-              </div>
+              {request.hospital && (
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-soft flex items-center justify-center shrink-0">
+                    <Building2 className="w-5 h-5 text-brand" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted">Hospital Destination</p>
+                    <p className="text-sm font-semibold text-text-dark">{request.hospital.name}</p>
+                    {request.location?.address && (
+                      <p className="text-xs text-text-muted mt-0.5">{request.location.address}</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
 
           <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => navigate(`/patient/requests/${requestId}/tracking`)}
-            >
+            <Button size="sm" variant="ghost" onClick={() => navigate(`/patient/requests/${requestId}/tracking`)}>
               View Tracking
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => navigate(`/patient/requests/${requestId}/coordination`)}
-            >
+            <Button size="sm" variant="ghost" onClick={() => navigate(`/patient/requests/${requestId}/coordination`)}>
               View AI Coordination
             </Button>
           </div>

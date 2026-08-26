@@ -1,11 +1,40 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
+const BloodRequest = require("../models/BloodRequest");
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
 const authorizeRoles = require("../middleware/authorizeRoles");
 
 // Every route in this file requires an active admin
 router.use(verifyFirebaseToken, authorizeRoles("admin"));
+
+/** GET /api/admin/requests — system-wide blood requests */
+router.get("/requests", async (req, res) => {
+  try {
+    const { status, urgency, search } = req.query;
+    const filter = {};
+
+    if (status) filter.status = status;
+    if (urgency) filter.urgency = urgency;
+    if (search) {
+      filter.$or = [
+        { bloodGroup: { $regex: search, $options: "i" } },
+        { patientName: { $regex: search, $options: "i" } },
+        { "location.address": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const requests = await BloodRequest.find(filter)
+      .sort({ createdAt: -1 })
+      .populate("hospital", "name email")
+      .populate("patient", "name");
+
+    res.json({ success: true, count: requests.length, requests });
+  } catch (err) {
+    console.error("Admin requests fetch error:", err);
+    res.status(500).json({ success: false, message: "Could not load requests" });
+  }
+});
 
 /** GET /api/admin/pending — accounts awaiting approval */
 router.get("/pending", async (req, res) => {

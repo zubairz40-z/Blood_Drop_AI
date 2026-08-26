@@ -13,7 +13,7 @@ function BestMatchCard({ match }) {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-text-dark">Best Match</h3>
-            <p className="text-xs text-text-muted">Top candidate from demo coordination</p>
+            <p className="text-xs text-text-muted">Top candidate from AI coordination</p>
           </div>
         </div>
         <Badge variant="success">IDENTIFIED</Badge>

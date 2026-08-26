@@ -1,23 +1,36 @@
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import PageHeader from '../../components/common/PageHeader'
 import Badge from '../../components/ui/Badge'
 import Table from '../../components/ui/Table'
 import Card from '../../components/ui/Card'
-import { demoDonationHistory } from '../../data/demoDonationHistory'
+import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { fetchMyDonations } from '../../api/donationApi'
+import { toComponentLabel } from '../../api/mappers'
 
 const statusVariant = {
-  COMPLETED: 'success',
+  CONFIRMED: 'success',
+  PENDING: 'warning',
+  CANCELLED: 'error',
 }
 
 const columns = [
   {
     key: 'id',
     header: 'Donation ID',
-    render: (val) => <span className="font-medium text-text-dark">{val}</span>,
+    render: (val) => <span className="font-medium text-text-dark">{String(val).slice(-8)}</span>,
   },
-  { key: 'date', header: 'Date' },
-  { key: 'hospital', header: 'Hospital' },
-  { key: 'donationType', header: 'Type' },
+  {
+    key: 'donatedAt',
+    header: 'Date',
+    render: (val) => val ? new Date(val).toLocaleDateString() : '—',
+  },
+  { key: 'hospitalName', header: 'Hospital' },
+  {
+    key: 'component',
+    header: 'Type',
+    render: (val) => toComponentLabel(val) || val,
+  },
   {
     key: 'bloodGroup',
     header: 'Blood Group',
@@ -27,21 +40,47 @@ const columns = [
       </div>
     ),
   },
-  { key: 'units', header: 'Units', render: (val) => `${val} unit` },
+  {
+    key: 'units',
+    header: 'Units',
+    render: (val) => `${val} unit${val === 1 ? '' : 's'}`,
+  },
   {
     key: 'status',
     header: 'Status',
     render: (val) => <Badge variant={statusVariant[val] || 'neutral'}>{val}</Badge>,
   },
-  {
-    key: 'nextEligibleDate',
-    header: 'Next Eligible',
-    render: (val) => <span className="text-emerald-600 font-medium">{val}</span>,
-  },
 ]
 
 function DonorDonationHistory() {
-  const totalDonations = demoDonationHistory.length
+  const [history, setHistory] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchMyDonations().then((data) => {
+      if (!cancelled) {
+        setHistory(data)
+        setLoading(false)
+      }
+    }).catch(() => {
+      if (!cancelled) setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Donation History" description="Loading..." />
+        <div className="flex justify-center py-24">
+          <LoadingSpinner />
+        </div>
+      </div>
+    )
+  }
+
+  const confirmedCount = history.filter((d) => d.status === 'CONFIRMED').length
 
   return (
     <motion.div
@@ -61,27 +100,27 @@ function DonorDonationHistory() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card className="flex items-center gap-4 hover:shadow-md transition-shadow duration-200">
           <div className="w-12 h-12 rounded-2xl bg-brand-soft flex items-center justify-center flex-shrink-0">
-            <span className="text-xl font-bold text-brand">{totalDonations}</span>
+            <span className="text-xl font-bold text-brand">{history.length}</span>
           </div>
           <div>
             <p className="text-sm font-semibold text-text-dark">Total Donations</p>
-            <p className="text-xs text-text-muted mt-0.5">All completed donations</p>
+            <p className="text-xs text-text-muted mt-0.5">All recorded donations</p>
           </div>
         </Card>
         <Card className="flex items-center gap-4 hover:shadow-md transition-shadow duration-200">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <span className="text-sm font-bold text-emerald-600">Now</span>
+            <span className="text-xl font-bold text-emerald-600">{confirmedCount}</span>
           </div>
           <div>
-            <p className="text-sm font-semibold text-text-dark">Next Eligible Date</p>
-            <p className="text-xs text-emerald-600 mt-0.5 font-medium">Eligible now</p>
+            <p className="text-sm font-semibold text-text-dark">Confirmed</p>
+            <p className="text-xs text-emerald-600 mt-0.5 font-medium">Completed donations</p>
           </div>
         </Card>
       </div>
 
       <Table
         columns={columns}
-        data={demoDonationHistory}
+        data={history}
         rowKey="id"
         emptyMessage="No donations yet."
       />

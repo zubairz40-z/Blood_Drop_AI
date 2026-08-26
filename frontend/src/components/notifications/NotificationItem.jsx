@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, CheckCircle, Info, Bell, ShieldAlert } from 'lucide-react'
 import Button from '../ui/Button'
+import { useCountdown } from '../../hooks/useCountdown'
 
 const typeIcons = {
   emergency: AlertTriangle,
@@ -18,13 +19,35 @@ const typeColors = {
   system: 'text-brand bg-brand-soft',
 }
 
+function WaveCountdown({ expiresAt, wave }) {
+  const { formatted, expired } = useCountdown(expiresAt)
+  if (!expiresAt) return null
+
+  return (
+    <div className="flex items-center gap-2 mt-1.5">
+      {wave != null && (
+        <span className="text-[10px] font-medium text-blood bg-blood-soft px-1.5 py-0.5 rounded">
+          Wave {wave}
+        </span>
+      )}
+      <span className={`text-[10px] font-mono font-medium ${expired ? 'text-text-muted' : 'text-amber-600'}`}>
+        {expired ? 'Offer expired' : `Respond within ${formatted}`}
+      </span>
+    </div>
+  )
+}
+
 function NotificationItem({ notification, onMarkRead }) {
   const navigate = useNavigate()
-  const Icon = typeIcons[notification.type] || Bell
-  const colors = typeColors[notification.type] || 'text-text-muted bg-neutral-100'
+  const category = notification.typeCategory || notification.type || 'system'
+  const Icon = typeIcons[category] || Bell
+  const colors = typeColors[category] || 'text-text-muted bg-neutral-100'
+
+  const isMatchFound = notification.type === 'MATCH_FOUND'
+  const isActionable = isMatchFound && notification.expiresAt && !notification.read
 
   function handleClick() {
-    if (!notification.read) {
+    if (!notification.read && onMarkRead) {
       onMarkRead(notification.id)
     }
     if (notification.actionPath) {
@@ -58,6 +81,16 @@ function NotificationItem({ notification, onMarkRead }) {
           )}
         </div>
         <p className="text-xs text-text-muted mt-0.5">{notification.message}</p>
+        {isActionable && (
+          <WaveCountdown expiresAt={notification.expiresAt} wave={notification.wave} />
+        )}
+        {!isActionable && notification.wave != null && isMatchFound && (
+          <div className="mt-1.5">
+            <span className="text-[10px] font-medium text-text-muted bg-neutral-100 px-1.5 py-0.5 rounded">
+              Wave {notification.wave}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between mt-2">
           <span className="text-xs text-text-light">{notification.timestamp}</span>
           {notification.actionLabel && (

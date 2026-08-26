@@ -12,7 +12,7 @@ function NotificationStatusCard({ notification }) {
         </div>
         <div>
           <h3 className="text-sm font-semibold text-text-dark">Notification Status</h3>
-          <p className="text-xs text-text-muted">Demo notification stage</p>
+          <p className="text-xs text-text-muted">Donor notification wave</p>
         </div>
       </div>
 
@@ -32,11 +32,14 @@ function NotificationStatusCard({ notification }) {
           </div>
           <Badge variant="warning">{notification.responseStatus}</Badge>
         </div>
-      </div>
 
-      <p className="text-xs text-text-muted mt-3">
-        Demo notification stage — no real message has been sent.
-      </p>
+        {notification.wave && (
+          <div className="flex items-center justify-between p-3 bg-surface-soft rounded-xl border border-border">
+            <span className="text-sm text-text-dark">Wave</span>
+            <Badge variant="error">{notification.wave === 1 ? 'Primary donor' : `Backup #${notification.wave - 1}`}</Badge>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
