@@ -1,10 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
-import { Map, Marker, Popup, NavigationControl, LngLatBounds } from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { normalizeCoordinates, DHAKA_CENTER } from '../../utils/locationUtils'
+import { normalizeCoordinates, DHAKA_CENTER, geoJsonToLngLat } from '../../utils/locationUtils'
 import MapLegend from './MapLegend'
 
-const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
+const MAP_STYLE = import.meta.env.VITE_MAPTILER_KEY
+  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${import.meta.env.VITE_MAPTILER_KEY}`
+  : {
+      version: 8,
+      sources: {
+        osm: {
+          type: 'raster',
+          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution: '&copy; OpenStreetMap contributors',
+        },
+      },
+      layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+    }
 
 const MARKER_COLORS = {
   request: '#DC2626',
@@ -44,17 +57,17 @@ function BloodDropMap({ markers = [], route = null, height = '350px', className 
   const [mapError, setMapError] = useState(false)
 
   const validMarkers = markers
-    .map((m) => {
-      const coords = normalizeCoordinates(m)
+    .map((marker) => {
+      const coords = normalizeCoordinates(marker?.location ?? marker?.coordinates ?? marker)
       if (!coords) return null
-      return { ...coords, type: m.type || 'donor', label: m.label || '', sublabel: m.sublabel || '' }
+      return { ...coords, type: marker?.type || 'donor', label: marker?.label || marker?.name || 'Location', sublabel: marker?.sublabel || marker?.details || '' }
     })
     .filter(Boolean)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
 
-    const map = new Map({
+    const map = new maplibregl.Map({
       container: containerRef.current,
       style: MAP_STYLE,
       center: [DHAKA_CENTER.lng, DHAKA_CENTER.lat],
@@ -64,7 +77,7 @@ function BloodDropMap({ markers = [], route = null, height = '350px', className 
 
     map.on('error', () => setMapError(true))
     map.on('load', () => setMapError(false))
-    map.addControl(new NavigationControl(), 'top-right')
+    map.addControl(new maplibregl.NavigationControl(), 'top-right')
     mapRef.current = map
 
     return () => {
@@ -77,31 +90,34 @@ function BloodDropMap({ markers = [], route = null, height = '350px', className 
     const map = mapRef.current
     if (!map) return
 
-    markersRef.current.forEach((m) => m.remove())
+    markersRef.current.forEach((marker) => marker.remove())
     markersRef.current = []
 
-    if (validMarkers.length === 0) return
+    if (validMarkers.length === 0) {
+      map.flyTo({ center: [DHAKA_CENTER.lng, DHAKA_CENTER.lat], zoom: 11, duration: 250 })
+      return
+    }
 
-    const bounds = new LngLatBounds()
+    const bounds = new maplibregl.LngLatBounds()
 
-    validMarkers.forEach((m) => {
-      const popup = new Popup({ offset: 16 }).setHTML(
-        `<div style="font-size:14px;"><strong>${m.label}</strong>${m.sublabel ? `<br/><span style="font-size:12px;color:#666;">${m.sublabel}</span>` : ''}</div>`
+    validMarkers.forEach((marker) => {
+      const popup = new maplibregl.Popup({ offset: 16 }).setHTML(
+        `<div style="font-size:14px;"><strong>${marker.label}</strong>${marker.sublabel ? `<br/><span style="font-size:12px;color:#666;">${marker.sublabel}</span>` : ''}</div>`
       )
 
-      const marker = new Marker({ element: createMarkerElement(m.type) })
-        .setLngLat([m.lng, m.lat])
+      const pointMarker = new maplibregl.Marker({ element: createMarkerElement(marker.type) })
+        .setLngLat([marker.lng, marker.lat])
         .setPopup(popup)
         .addTo(map)
 
-      markersRef.current.push(marker)
-      bounds.extend([m.lng, m.lat])
+      markersRef.current.push(pointMarker)
+      bounds.extend([marker.lng, marker.lat])
     })
 
     if (validMarkers.length === 1) {
-      map.flyTo({ center: [validMarkers[0].lng, validMarkers[0].lat], zoom: 14, duration: 0 })
+      map.flyTo({ center: [validMarkers[0].lng, validMarkers[0].lat], zoom: 14, duration: 250 })
     } else {
-      map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 0 })
+      map.fitBounds(bounds, { padding: 70, maxZoom: 15, duration: 250 })
     }
   }, [validMarkers])
 
@@ -114,11 +130,29 @@ function BloodDropMap({ markers = [], route = null, height = '350px', className 
 
     if (!route || !route.coordinates || route.coordinates.length < 2) return
 
+    const routeCoords = route.coordinates.map((coord) => {
+      if (coord && typeof coord === 'object' && coord.type === 'Point' && Array.isArray(coord.coordinates)) {
+        const lngLat = geoJsonToLngLat(coord)
+        return lngLat || null
+      }
+
+      if (Array.isArray(coord) && coord.length >= 2) {
+        const [lng, lat] = coord.map(Number)
+        if (Number.isFinite(lng) && Number.isFinite(lat)) return [lng, lat]
+      }
+
+      const normalized = normalizeCoordinates(coord)
+      if (!normalized) return null
+      return [normalized.lng, normalized.lat]
+    }).filter(Boolean)
+
+    if (!routeCoords.length) return
+
     map.addSource('route', {
       type: 'geojson',
       data: {
         type: 'Feature',
-        geometry: { type: 'LineString', coordinates: route.coordinates },
+        geometry: { type: 'LineString', coordinates: routeCoords },
         properties: {},
       },
     })
@@ -128,7 +162,7 @@ function BloodDropMap({ markers = [], route = null, height = '350px', className 
       type: 'line',
       source: 'route',
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': '#3B82F6', 'line-width': 3, 'line-opacity': 0.8 },
+      paint: { 'line-color': '#2563eb', 'line-width': 4, 'line-opacity': 0.9 },
     })
   }, [route])
 

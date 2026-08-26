@@ -3,11 +3,13 @@ import { MapPin, Pencil, Navigation, Loader2, CheckCircle2 } from 'lucide-react'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
 import Alert from '../ui/Alert'
+import { geocodeAddress } from '../../utils/locationUtils'
 
 function DonorLocationAvailability({ location, onLocationChange, available, onAvailabilityChange, error }) {
   const [locationMode, setLocationMode] = useState(location.mode || 'manual')
   const [locating, setLocating] = useState(false)
   const [locationMessage, setLocationMessage] = useState(null)
+  const [geocoding, setGeocoding] = useState(false)
 
   function handleModeChange(mode) {
     setLocationMode(mode)
@@ -51,7 +53,25 @@ function DonorLocationAvailability({ location, onLocationChange, available, onAv
   }
 
   function handleAddressChange(e) {
-    onLocationChange({ ...location, address: e.target.value })
+    onLocationChange({ ...location, address: e.target.value, latitude: null, longitude: null })
+    setLocationMessage(null)
+  }
+
+  async function handleAddressBlur() {
+    const address = location.address.trim()
+    if (!address || (location.latitude && location.longitude)) return
+
+    setGeocoding(true)
+    setLocationMessage(null)
+    try {
+      const result = await geocodeAddress(address)
+      onLocationChange({ ...location, mode: 'manual', ...result })
+      setLocationMessage({ type: 'success', text: `Location found: ${result.latitude.toFixed(4)}, ${result.longitude.toFixed(4)}.` })
+    } catch (error) {
+      setLocationMessage({ type: 'error', text: error.message })
+    } finally {
+      setGeocoding(false)
+    }
   }
 
   const hasCoordinates = location.latitude && location.longitude
@@ -116,9 +136,11 @@ function DonorLocationAvailability({ location, onLocationChange, available, onAv
             name="address"
             value={location.address}
             onChange={handleAddressChange}
+            onBlur={handleAddressBlur}
             placeholder="e.g. Mirpur 10, Dhaka"
             error={error}
           />
+          {geocoding && <p className="text-xs text-text-muted mt-1.5">Finding this location...</p>}
           <p className="text-xs text-text-muted mt-1.5">
             Enter your area, neighborhood, city, or a nearby landmark.
           </p>

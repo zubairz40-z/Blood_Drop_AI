@@ -68,6 +68,11 @@ function validate(form) {
 
   if (form.location.mode === 'manual') {
     if (!form.location.address.trim()) errors.location = 'Enter your location.'
+    else if (!Number.isFinite(Number(form.location.latitude)) || !Number.isFinite(Number(form.location.longitude))) {
+      errors.location = 'Search for this address and choose a real location before saving.'
+    } else if (Number(form.location.latitude) === 0 && Number(form.location.longitude) === 0) {
+      errors.location = 'Choose a real location before saving.'
+    }
   } else if (!form.location.latitude || !form.location.longitude) {
     errors.location = 'Use your current location before saving.'
   }

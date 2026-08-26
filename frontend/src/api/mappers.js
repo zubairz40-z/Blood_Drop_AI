@@ -49,6 +49,8 @@ export function toGeoJson(formLocation) {
     return undefined
   }
 
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180 || (lat === 0 && lng === 0)) return undefined
+
   return {
     type: 'Point',
     coordinates: [lng, lat], // [longitude, latitude]

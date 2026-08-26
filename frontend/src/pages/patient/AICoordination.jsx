@@ -150,9 +150,25 @@ function AICoordination() {
 
   // Build map markers from request location
   const requestCoords = normalizeCoordinates(requestInfo?.location)
-  const mapMarkers = requestCoords
-    ? [{ ...requestCoords, type: 'request', label: info.bloodGroup || 'Request', sublabel: info.component || '' }]
-    : []
+  const hospitalCoords = normalizeCoordinates(result?.hospital?.location)
+  const bestDonorLocation = normalizeCoordinates(result?.bestDonor?.location)
+  const backupDonorMarkers = (result?.backupDonors || []).map((donor) => {
+    const donorCoords = normalizeCoordinates(donor.location)
+    if (!donorCoords) return null
+    return {
+      ...donorCoords,
+      type: 'donor',
+      label: donor.name || donor.donorId || 'Nearby donor',
+      sublabel: `${donor.bloodGroup || info.bloodGroup || '—'} · ${donor.distanceKm != null ? `${donor.distanceKm} km` : 'Nearby'}`,
+    }
+  }).filter(Boolean)
+
+  const mapMarkers = [
+    ...(requestCoords ? [{ ...requestCoords, type: 'request', label: 'Request', sublabel: `${info.bloodGroup || 'Blood'} · ${info.component || ''}` }] : []),
+    ...(hospitalCoords ? [{ ...hospitalCoords, type: 'hospital', label: result?.hospital?.name || 'Hospital', sublabel: result?.hospital?.address || 'Hospital' }] : []),
+    ...(bestDonorLocation ? [{ ...bestDonorLocation, type: 'bestMatch', label: result?.bestDonor?.name || 'Best donor', sublabel: `${result?.bestDonor?.bloodGroup || info.bloodGroup || '—'} · ${result?.bestDonor?.distanceKm ?? 'Nearby' } km` }] : []),
+    ...backupDonorMarkers,
+  ]
 
   const candidates = selection.selection?.candidates || []
   const recommendedCandidate = candidates.find(c => c.donorId === result.recommendedDonor)
@@ -200,14 +216,17 @@ function AICoordination() {
     advisory: result.explanation,
   }
 
-  const bestMatch = result.recommendedDonor
+  const bestMatch = result.bestDonor
     ? {
-        id: result.recommendedDonor,
-        bloodGroup: info.bloodGroup || '—',
-        donationType: info.component || '—',
-        distance: recommendedCandidate?.distanceKm ?? nearestCandidate?.distanceKm ?? '—',
-        availability: 'Available',
-        factors: recommendedCandidate?.reasons || ['Compatible', 'Eligible', 'Available'],
+        id: result.bestDonor.donorId,
+        name: result.bestDonor.name,
+        bloodGroup: result.bestDonor.bloodGroup || info.bloodGroup || '—',
+        donationType: result.bestDonor.component || info.component || 'Whole Blood',
+        distance: result.bestDonor.distanceKm ?? recommendedCandidate?.distanceKm ?? nearestCandidate?.distanceKm ?? '—',
+        etaMinutes: result.bestDonor.etaMinutes ?? nearestCandidate?.etaMinutes ?? null,
+        matchScore: result.bestDonor.score ?? recommendedCandidate?.score ?? null,
+        status: result.bestDonor.status || 'Available',
+        factors: recommendedCandidate?.reasons || result.bestDonor?.reasons || ['Compatible', 'Eligible', 'Available'],
       }
     : null
 
@@ -215,6 +234,7 @@ function AICoordination() {
     sentStatus: result.nextAction === 'CONTACT_PRIMARY_DONOR' ? 'SENT' : 'PENDING',
     responseStatus: actionText,
     wave: selection.wave || null,
+    emailStatus: 'Not configured',
   }
 
   return (

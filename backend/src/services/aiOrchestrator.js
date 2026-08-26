@@ -15,6 +15,8 @@
  */
 
 const BloodRequest = require("../models/BloodRequest");
+const User = require("../models/User");
+const DonorProfile = require("../models/DonorProfile");
 const riskAdvisorAgent = require("../agents/riskAdvisorAgent");
 const aiManager = require("../agents/aiManager");
 const matchingService = require("./matchingService");
@@ -235,6 +237,7 @@ async function coordinateRealRequest({ requestId }) {
   const matchingResult = await matchingService.findCandidates(requestId, { limit: 20 });
   const candidates = matchingResult.candidates || [];
   const donorIds = candidates.map((c) => c.donorId);
+  const hospitalDoc = await User.findById(request.hospital).select("name email address location").lean();
 
   // 3. Run all three Arefa agents in parallel
   //    All share the same candidateSet to avoid redundant queries.
@@ -284,6 +287,7 @@ async function coordinateRealRequest({ requestId }) {
     matchingResult,
     riskResult,
   });
+  agentStatus.manager = "COMPLETED";
 
   // 6. Attach all agent outputs for frontend display
   result.eligibilityResult = eligibilityResult;
@@ -296,7 +300,57 @@ async function coordinateRealRequest({ requestId }) {
     urgency: request.urgency,
     unitsRequired: request.unitsRequired,
     status: request.status,
+    hospitalId: String(request.hospital),
+    hospitalName: hospitalDoc?.name || null,
+    hospitalLocation: hospitalDoc?.location || null,
+    hospitalAddress: hospitalDoc?.address || request.location?.address || null,
+    requestLocation: request.location || null,
   };
+
+  result.hospital = {
+    id: String(request.hospital),
+    name: hospitalDoc?.name || "Hospital",
+    location: hospitalDoc?.location || request.location || null,
+    address: hospitalDoc?.address || request.location?.address || null,
+  };
+
+  const primaryDonorId = result.recommendedDonor || selection?.primary || geoResult?.preferred || null;
+  const donorCandidates = candidates.filter((candidate) => candidate.donorId === primaryDonorId)
+    .concat(candidates.filter((candidate) => candidate.donorId !== primaryDonorId));
+
+  const populateDonor = async (donorId) => {
+    if (!donorId) return null;
+    const profile = await DonorProfile.findOne({ user: donorId }).populate("user", "name email phone bloodGroup").lean();
+    if (!profile) return null;
+
+    const donorCandidate = donorCandidates.find((candidate) => candidate.donorId === String(donorId)) || null;
+    return {
+      donorId: String(donorId),
+      name: profile.user?.name || "Donor",
+      bloodGroup: profile.bloodGroup || profile.user?.bloodGroup || request.bloodGroup,
+      location: profile.location || null,
+      distanceKm: donorCandidate?.distanceKm ?? null,
+      etaMinutes: donorCandidate?.etaMinutes ?? null,
+      score: donorCandidate?.score ?? null,
+      status: profile.isAvailable ? "Available" : "Unavailable",
+      eligible: donorCandidate?.eligible ?? true,
+      component: donorCandidate?.component || request.component,
+    };
+  };
+
+  if (primaryDonorId) {
+    result.bestDonor = await populateDonor(primaryDonorId);
+  }
+
+  const backupIds = (selection?.backups || [])
+    .filter(Boolean)
+    .map(String);
+
+  result.backupDonors = [];
+  for (const donorId of backupIds) {
+    const donor = await populateDonor(donorId);
+    if (donor) result.backupDonors.push(donor);
+  }
 
   // Expose risk reasons and recommendation so the frontend can display
   // real operational context without guessing.

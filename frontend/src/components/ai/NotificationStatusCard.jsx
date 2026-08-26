@@ -20,7 +20,7 @@ function NotificationStatusCard({ notification }) {
         <div className="flex items-center justify-between p-3 bg-surface-soft rounded-xl border border-border">
           <div className="flex items-center gap-2">
             <Bell className="w-4 h-4 text-emerald-500" />
-            <span className="text-sm text-text-dark">Notification sent</span>
+            <span className="text-sm text-text-dark">Notification</span>
           </div>
           <Badge variant="success">{notification.sentStatus}</Badge>
         </div>
@@ -32,6 +32,13 @@ function NotificationStatusCard({ notification }) {
           </div>
           <Badge variant="warning">{notification.responseStatus}</Badge>
         </div>
+
+        {notification.emailStatus && (
+          <div className="flex items-center justify-between p-3 bg-surface-soft rounded-xl border border-border">
+            <span className="text-sm text-text-dark">Email</span>
+            <Badge variant={notification.emailStatus === 'Sent' ? 'success' : notification.emailStatus === 'Not configured' ? 'neutral' : 'warning'}>{notification.emailStatus}</Badge>
+          </div>
+        )}
 
         {notification.wave && (
           <div className="flex items-center justify-between p-3 bg-surface-soft rounded-xl border border-border">

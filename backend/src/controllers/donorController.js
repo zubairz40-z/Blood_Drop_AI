@@ -81,6 +81,10 @@ async function createProfile(req, res, next) {
       return res.status(400).json({ success: false, message: problems.join(" ") });
     }
 
+    if (!validLocation(location)) {
+      return res.status(400).json({ success: false, message: "A valid non-zero GeoJSON Point is required for donor location." });
+    }
+
     const profile = await DonorProfile.create({
       user: userId,
       dateOfBirth,
@@ -121,6 +125,14 @@ async function getProfile(req, res, next) {
 /** PATCH /api/donors/profile */
 const UPDATABLE_FIELDS = ["dateOfBirth", "weightKg", "bloodGroup", "donationTypes", "location"];
 
+function validLocation(location) {
+  const coordinates = location?.coordinates;
+  if (location?.type !== "Point" || !Array.isArray(coordinates) || coordinates.length !== 2) return false;
+  const [lng, lat] = coordinates.map(Number);
+  return Number.isFinite(lng) && Number.isFinite(lat) &&
+    lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90 && !(lng === 0 && lat === 0);
+}
+
 async function updateProfile(req, res, next) {
   try {
     const profile = await DonorProfile.findOne({ user: req.currentUser._id });
@@ -136,6 +148,10 @@ async function updateProfile(req, res, next) {
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ success: false, message: "No updatable fields provided." });
+    }
+
+    if (updates.location !== undefined && !validLocation(updates.location)) {
+      return res.status(400).json({ success: false, message: "A valid non-zero GeoJSON Point is required for donor location." });
     }
 
     // Re-check the rules against the merged values
@@ -177,6 +193,13 @@ async function updateProfile(req, res, next) {
 
     Object.assign(profile, updates);
     await profile.save();
+
+    if (updates.location) {
+      const user = await User.findById(req.currentUser._id);
+      user.location = { type: "Point", coordinates: updates.location.coordinates };
+      if (updates.location.address !== undefined) user.address = updates.location.address;
+      await user.save();
+    }
 
     res.json({ success: true, profile });
   } catch (err) {
