@@ -115,9 +115,6 @@ function CreateBloodRequest() {
   async function handleSubmit(e) {
     e.preventDefault()
     const validationErrors = validate(form)
-    console.log('form:', form)
-    console.log('errors:', validationErrors)
-
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors)
       return

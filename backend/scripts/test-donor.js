@@ -3,8 +3,8 @@ require("dotenv").config();
 const API_KEY = process.env.FIREBASE_WEB_API_KEY;
 const SERVER = `http://localhost:${process.env.PORT || 5000}`;
 
-const DONOR = { email: "donor@test.com", password: "Test1234" };
-const PATIENT = { email: "patient@test.com", password: "Test1234" };
+const DONOR = { email: "donor@test.com", password: process.env.TEST_DONOR_PASSWORD || "Test1234" };
+const PATIENT = { email: "patient@test.com", password: process.env.TEST_PATIENT_PASSWORD || "Test1234" };
 
 async function signIn({ email, password }) {
   const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`;
