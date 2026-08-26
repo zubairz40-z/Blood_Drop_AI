@@ -9,9 +9,24 @@ const {
   SEARCH_RADIUS_KM,
 } = require("../utils/donationRules");
 
-/** Scoring weights. Mandatory filters are not scored — they gate entry. */
-const DISTANCE_WEIGHT = 70;
-const HISTORY_WEIGHT = 30;
+/**
+ * Scoring weights by urgency. Mandatory filters are not scored — they gate
+ * entry — so these only rank the donors who already qualify.
+ *
+ * The split shifts with urgency on purpose. In an emergency the only thing
+ * that matters is who can physically arrive soonest, so distance takes
+ * almost all the weight. For a routine request there is time to prefer a
+ * donor with a track record, who is likelier to actually turn up.
+ *
+ * Each pair sums to 100, so scores stay comparable across urgencies.
+ */
+const WEIGHTS = {
+  EMERGENCY: { distance: 90, history: 10 },
+  URGENT: { distance: 75, history: 25 },
+  ROUTINE: { distance: 55, history: 45 },
+};
+
+const DEFAULT_WEIGHTS = WEIGHTS.URGENT;
 
 /** A donor with this many past donations scores full marks on reliability. */
 const HISTORY_SATURATION = 5;
@@ -26,9 +41,9 @@ function fail(message, status = 400) {
  * Closer is better, on a linear falloff to the search radius.
  * A donor at 0 km scores the full weight; one at the radius edge scores 0.
  */
-function scoreDistance(distanceKm, radiusKm) {
+function scoreDistance(distanceKm, radiusKm, weight = DEFAULT_WEIGHTS.distance) {
   if (distanceKm >= radiusKm) return 0;
-  return Math.round(DISTANCE_WEIGHT * (1 - distanceKm / radiusKm));
+  return Math.round(weight * (1 - distanceKm / radiusKm));
 }
 
 /**
@@ -36,9 +51,9 @@ function scoreDistance(distanceKm, radiusKm) {
  * five times is likelier to show up again. Saturates so a donor with 50
  * donations doesn't crowd out a nearby donor with 5.
  */
-function scoreHistory(totalDonations) {
+function scoreHistory(totalDonations, weight = DEFAULT_WEIGHTS.history) {
   const n = Math.min(totalDonations || 0, HISTORY_SATURATION);
-  return Math.round(HISTORY_WEIGHT * (n / HISTORY_SATURATION));
+  return Math.round(weight * (n / HISTORY_SATURATION));
 }
 
 /**
@@ -70,6 +85,7 @@ async function findCandidates(requestId, { limit = 10, asOf = new Date() } = {})
   }
 
   const radiusKm = SEARCH_RADIUS_KM[request.urgency] ?? 25;
+  const weights = WEIGHTS[request.urgency] ?? DEFAULT_WEIGHTS;
 
   // Only these groups can help, so let the database discard the rest
   const acceptableGroups = compatibleDonorGroups(
@@ -110,7 +126,9 @@ async function findCandidates(requestId, { limit = 10, asOf = new Date() } = {})
     const distanceKm = Math.round((donor.distanceMeters / 1000) * 10) / 10;
     const etaMinutes = estimateEtaMinutes(distanceKm);
 
-    const score = scoreDistance(distanceKm, radiusKm) + scoreHistory(donor.totalDonations);
+    const score =
+      scoreDistance(distanceKm, radiusKm, weights.distance) +
+      scoreHistory(donor.totalDonations, weights.history);
 
     candidates.push({
       donorId: String(donor.user),
@@ -136,6 +154,7 @@ async function findCandidates(requestId, { limit = 10, asOf = new Date() } = {})
   return {
     requestId: String(request._id),
     radiusKm,
+    weights,
     candidates: candidates.slice(0, limit),
   };
 }
@@ -189,4 +208,5 @@ module.exports = {
   explainDonor,
   scoreDistance,
   scoreHistory,
+  WEIGHTS,
 };
