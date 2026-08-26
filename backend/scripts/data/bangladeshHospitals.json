@@ -1,0 +1,162 @@
+[
+  {
+    "name": "Evercare Hospital Dhaka",
+    "address": "Plot 81, Block E, Bashundhara R/A, Dhaka 1229",
+    "city": "Dhaka",
+    "area": "Bashundhara",
+    "lat": 23.8185,
+    "lng": 90.4356
+  },
+  {
+    "name": "Square Hospitals Ltd",
+    "address": "18/F, Bir Uttam Qazi Nuruzzaman Road, West Panthapath, Dhaka 1205",
+    "city": "Dhaka",
+    "area": "Panthapath",
+    "lat": 23.7585,
+    "lng": 90.3810
+  },
+  {
+    "name": "United Hospital Limited",
+    "address": "Plot 81, Road 44, Gulshan 2, Dhaka 1212",
+    "city": "Dhaka",
+    "area": "Gulshan",
+    "lat": 23.7940,
+    "lng": 90.4070
+  },
+  {
+    "name": "LABAID Specialized Hospital",
+    "address": "House 6, Road 4, Dhanmondi, Dhaka 1205",
+    "city": "Dhaka",
+    "area": "Dhanmondi",
+    "lat": 23.7462,
+    "lng": 90.3742
+  },
+  {
+    "name": "Popular Medical College Hospital",
+    "address": "New Elephant Road, Dhanmondi, Dhaka 1205",
+    "city": "Dhaka",
+    "area": "Dhanmondi",
+    "lat": 23.7390,
+    "lng": 90.3730
+  },
+  {
+    "name": "Ibn Sina Specialized Hospital",
+    "address": "House 48, Road 9/A, Dhanmondi, Dhaka 1209",
+    "city": "Dhaka",
+    "area": "Dhanmondi",
+    "lat": 23.7510,
+    "lng": 90.3705
+  },
+  {
+    "name": "Bangladesh Specialized Hospital",
+    "address": "Plot 81, Block E, Bashundhara, Shyamoli, Dhaka 1207",
+    "city": "Dhaka",
+    "area": "Shyamoli",
+    "lat": 23.7695,
+    "lng": 90.3575
+  },
+  {
+    "name": "Green Life Medical College Hospital",
+    "address": "1/Ga, Green Road, Farmgate, Dhaka 1215",
+    "city": "Dhaka",
+    "area": "Green Road",
+    "lat": 23.7580,
+    "lng": 90.3875
+  },
+  {
+    "name": "Anwer Khan Modern Medical College Hospital",
+    "address": "House 11, Road 6, Dhanmondi, Dhaka 1205",
+    "city": "Dhaka",
+    "area": "Dhanmondi",
+    "lat": 23.7480,
+    "lng": 90.3760
+  },
+  {
+    "name": "Holy Family Red Crescent Medical College Hospital",
+    "address": "1 Eskaton Garden Road, Eskaton, Dhaka 1000",
+    "city": "Dhaka",
+    "area": "Eskaton",
+    "lat": 23.7390,
+    "lng": 90.4070
+  },
+  {
+    "name": "Dhaka Medical College Hospital",
+    "address": "Secretariat Road, Shahbagh, Dhaka 1000",
+    "city": "Dhaka",
+    "area": "Shahbagh",
+    "lat": 23.7330,
+    "lng": 90.3930
+  },
+  {
+    "name": "Kurmitola General Hospital",
+    "address": "Mehedi Hasan Road, Kurmitola, Dhaka 1230",
+    "city": "Dhaka",
+    "area": "Kurmitola",
+    "lat": 23.8275,
+    "lng": 90.3975
+  },
+  {
+    "name": "BIRDEM General Hospital",
+    "address": "122 Kazi Nazrul Islam Avenue, Shahbagh, Dhaka 1000",
+    "city": "Dhaka",
+    "area": "Shahbagh",
+    "lat": 23.7365,
+    "lng": 90.3945
+  },
+  {
+    "name": "National Heart Foundation Hospital & Research Institute",
+    "address": "120 BirUttam Mir Shawkat Sarak, Mirpur 10, Dhaka 1216",
+    "city": "Dhaka",
+    "area": "Mirpur",
+    "lat": 23.7820,
+    "lng": 90.3560
+  },
+  {
+    "name": "Ahsania Mission Cancer & General Hospital",
+    "address": "Plot 3-4, Sector 10, Uttara, Dhaka 1230",
+    "city": "Dhaka",
+    "area": "Uttara",
+    "lat": 23.8690,
+    "lng": 90.3910
+  },
+  {
+    "name": "Asgar Ali Hospital",
+    "address": "36/G, Gandaria, Dhaka 1204",
+    "city": "Dhaka",
+    "area": "Gandaria",
+    "lat": 23.7170,
+    "lng": 90.4155
+  },
+  {
+    "name": "Shaheed Suhrawardy Medical College Hospital",
+    "address": "Sher-e-Bangla Nagar, Dhaka 1207",
+    "city": "Dhaka",
+    "area": "Sher-e-Bangla Nagar",
+    "lat": 23.7720,
+    "lng": 90.3695
+  },
+  {
+    "name": "National Institute of Neurosciences & Hospital",
+    "address": "Plot 2/1, Block B, Sher-e-Bangla Nagar, Agargaon, Dhaka 1207",
+    "city": "Dhaka",
+    "area": "Agargaon",
+    "lat": 23.7750,
+    "lng": 90.3730
+  },
+  {
+    "name": "Chattogram Medical College Hospital",
+    "address": "Chattogram Medical College Road, Agrabad, Chattogram 4209",
+    "city": "Chattogram",
+    "area": "Agrabad",
+    "lat": 22.3475,
+    "lng": 91.8250
+  },
+  {
+    "name": "Sylhet MAG Osmani Medical College Hospital",
+    "address": "Osmani Medical College Road, Majestic Plaza, Sylhet 3100",
+    "city": "Sylhet",
+    "area": "Majestic Plaza",
+    "lat": 24.8940,
+    "lng": 91.8700
+  }
+]

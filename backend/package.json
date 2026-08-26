@@ -8,7 +8,10 @@
     "start": "node src/server.js",
     "test": "node --test tests/*.test.js",
     "seed:demo": "node scripts/seedDemoData.js",
-    "seed:demo:clear": "node scripts/clearDemoData.js"
+    "seed:demo:clear": "node scripts/clearDemoData.js",
+    "seed:bangladesh": "node scripts/seed-bangladesh.js",
+    "seed:bangladesh:clear": "node scripts/clearBangladeshSeed.js",
+    "check:geo": "node scripts/check-seed-geo.js"
   },
   "keywords": [],
   "author": "",
