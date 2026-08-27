@@ -1,0 +1,17 @@
+[PATIENT] logged in
+[PATIENT] request created: 6a8fc88ce1467fd4001948b5
+[PATIENT] tracking shows pending verification: false
+[HOSPITAL] logged in
+[HOSPITAL] status after verify (DB): VERIFIED
+[AI] agentStatus: {"geo":"COMPLETED","matching":"COMPLETED","eligibility":"COMPLETED","risk":"COMPLETED","manager":"COMPLETED"}
+[AI] nextAction: CONTACT_PRIMARY_DONOR  bestDonor: Nusrat Rahman (0.1 km)
+[AI] candidates: 3
+[DB] MATCH_FOUND count: 1
+[DB] MATCH_FOUND recipient: 6a8f718ad126a5e4fd3311fe  expiryValid: true
+[DB] identity assertion allMatch: true
+[DB] selected donor: Nusrat Rahman <square.donor@blooddrop.test>
+[DONOR] logged in as square.donor@blooddrop.test
+[DONOR] Accept visible: true  Decline visible: true
+[DONOR] request status after accept (DB): MATCHED  matchedDonor: 6a8f718ad126a5e4fd3311fe
+[HOSPITAL] donation: CONFIRMED  request: FULFILLED  units 1/1  inventory: {"bloodGroup":"O+","component":"WHOLE_BLOOD","units":2}
+[PATIENT] browser shows FULFILLED: true

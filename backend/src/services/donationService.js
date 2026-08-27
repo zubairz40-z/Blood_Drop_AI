@@ -177,7 +177,12 @@ async function confirmDonation({ donationId, hospitalId }) {
     // recording and confirming, the donation still physically happened and
     // must still confirm. We just don't force a status it can't legally reach.
     const complete = request.unitsFulfilled >= request.unitsRequired;
-    if (complete && canTransition(request.status, STATUS.FULFILLED)) {
+    // Capture whether this confirmation is the one that closes the request,
+    // BEFORE applyStatus mutates request.status — otherwise the second
+    // canTransition() check below always fails (FULFILLED -> FULFILLED is not
+    // allowed) and the patient never gets their "request fulfilled" notice.
+    const justFulfilled = complete && canTransition(request.status, STATUS.FULFILLED);
+    if (justFulfilled) {
       request.applyStatus(STATUS.FULFILLED, hospitalId, "Unit requirement met");
       request.fulfilledAt = new Date();
     }
@@ -186,7 +191,7 @@ async function confirmDonation({ donationId, hospitalId }) {
 
     await notificationService.notifyDonationConfirmed({ donorUserId: donation.donor, donation });
 
-    if (complete && canTransition(request.status, STATUS.FULFILLED)) {
+    if (justFulfilled) {
       const patientToNotify = request.patient || request.createdBy;
       if (patientToNotify) {
         await notificationService.notifyRequestFulfilled({ userId: patientToNotify, request });

@@ -77,7 +77,19 @@ async function upsertInventory(hospitalId, items, userId) {
  * @returns {Promise<object|null>}  The updated row, or null if blocked
  */
 async function adjustUnits(hospitalId, bloodGroup, component, delta) {
-  // UsefindOneAndUpdate with a condition to atomically prevent going below 0
+  // Adding stock (delta >= 0): there is no "below zero" risk, so create the
+  // (hospital, bloodGroup, component) row if it does not exist yet. Without
+  // this upsert, a confirmed donation at a hospital whose inventory was never
+  // initialised silently updated nothing.
+  if (delta >= 0) {
+    return BloodInventory.findOneAndUpdate(
+      { hospital: hospitalId, bloodGroup, component },
+      { $inc: { units: delta }, $setOnInsert: { updatedBy: hospitalId } },
+      { new: true, upsert: true }
+    );
+  }
+
+  // Removing stock: only proceed if a row exists and it won't go negative.
   const result = await BloodInventory.findOneAndUpdate(
     {
       hospital: hospitalId,

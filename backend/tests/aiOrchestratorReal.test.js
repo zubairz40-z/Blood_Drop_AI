@@ -168,12 +168,16 @@ describe("coordinateRealRequest (real five-agent path)", () => {
     assert.equal(callArgs[0], REQUEST_ID);
   });
 
-  test("runs donorMatchingAgent.selectDonors with candidateSet", async () => {
+  test("runs donorMatchingAgent.selectDonors with the full funnel result as candidateSet", async () => {
     await orchestrator.coordinateRealRequest({ requestId: REQUEST_ID });
     assert.equal(donorMatchingAgent.selectDonors.mock.callCount(), 1);
     const callArgs = donorMatchingAgent.selectDonors.mock.calls[0].arguments;
     assert.equal(callArgs[0], REQUEST_ID);
-    assert.deepEqual(callArgs[1].candidateSet, CANDIDATES);
+    // selectDonors reads `candidateSet.candidates`, so it must receive the
+    // whole { candidates: [...] } object — NOT the bare array. Passing the
+    // array was the bug that stopped MATCH_FOUND from ever being created.
+    assert.ok(callArgs[1].candidateSet && Array.isArray(callArgs[1].candidateSet.candidates));
+    assert.deepEqual(callArgs[1].candidateSet.candidates, CANDIDATES);
   });
 
   test("runs eligibilitySchedulingAgent.assessDonors with requestId and options", async () => {
@@ -201,8 +205,13 @@ describe("coordinateRealRequest (real five-agent path)", () => {
 
   test("backup donors list excludes the primary", async () => {
     const result = await orchestrator.coordinateRealRequest({ requestId: REQUEST_ID });
-    assert.ok(!result.backupDonors.includes("donor-1"), "primary should not be in backups");
-    assert.deepEqual(result.backupDonors, ["donor-2", "donor-3"]);
+    // selection.backups is the matching agent's ordered reserve list (ids).
+    assert.deepEqual(result.selection.backups, ["donor-2", "donor-3"]);
+    assert.ok(!result.selection.backups.includes("donor-1"), "primary should not be in backups");
+    // result.backupDonors holds the *populated* donor objects; whatever is in
+    // it, the primary must never appear there.
+    const backupIds = (result.backupDonors || []).map((d) => d.donorId);
+    assert.ok(!backupIds.includes("donor-1"), "primary should not be a populated backup");
   });
 
   test("risk is computed from real DB signals", async () => {

@@ -31,6 +31,29 @@ async function contactNextDonor({ requestId, contactOrder, wave = 1, actorId, as
     return { contacted: null, exhausted: true, wave };
   }
 
+  // Idempotency guard: if this donor already has a live (unread, unexpired)
+  // MATCH_FOUND for this request, don't create a second one. This keeps
+  // repeated AI-coordination polling — or a double-invoked effect in dev —
+  // from spawning duplicate notifications and duplicate emails for one wave.
+  const existing = await Notification.findOne({
+    user: donorUserId,
+    request: requestId,
+    type: NOTIFICATION_TYPE.MATCH_FOUND,
+    read: false,
+  }).sort({ createdAt: -1 });
+
+  if (existing && !existing.isExpired(asOf)) {
+    return {
+      contacted: String(donorUserId),
+      exhausted: false,
+      wave: existing.wave || wave,
+      expiresAt: existing.expiresAt,
+      notificationId: existing._id,
+      emailStatus: "ALREADY_CONTACTED",
+      deduped: true,
+    };
+  }
+
   await matchingService.beginMatching(requestId, actorId);
 
   const notification = await notificationService.notifyMatchFound({

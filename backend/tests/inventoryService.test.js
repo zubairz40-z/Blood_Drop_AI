@@ -250,7 +250,7 @@ describe("inventoryService", () => {
   // -------------------------------------------------------------------------
 
   describe("adjustUnits", () => {
-    test("increments units by the given delta", async () => {
+    test("increments units by the given delta (and upserts the row)", async () => {
       const updated = makeFakeRow({ units: 8 });
       addMock(BloodInventory, "findOneAndUpdate", mock.fn(async () => updated));
 
@@ -260,11 +260,17 @@ describe("inventoryService", () => {
       assert.equal(q.hospital, "hosp-1");
       assert.equal(q.bloodGroup, "O+");
       assert.equal(q.component, "WHOLE_BLOOD");
-      // The $gte condition for delta=3 should be units >= -3
-      assert.deepEqual(q.units, { $gte: -3 });
+      // Adding stock cannot go negative, so there is no units guard on the
+      // positive-delta path — it must create the row if it does not exist yet.
+      assert.equal(q.units, undefined);
 
       const update = BloodInventory.findOneAndUpdate.mock.calls[0].arguments[1];
-      assert.deepEqual(update, { $inc: { units: 3 } });
+      assert.deepEqual(update.$inc, { units: 3 });
+      assert.ok(update.$setOnInsert, "positive delta should $setOnInsert on upsert");
+
+      const opts = BloodInventory.findOneAndUpdate.mock.calls[0].arguments[2];
+      assert.equal(opts.upsert, true);
+      assert.equal(opts.new, true);
 
       assert.equal(result.units, 8);
     });
@@ -287,10 +293,19 @@ describe("inventoryService", () => {
       assert.equal(result, null);
     });
 
-    test("passes { new: true } option", async () => {
+    test("positive delta passes { new: true, upsert: true }", async () => {
       addMock(BloodInventory, "findOneAndUpdate", mock.fn(async () => makeFakeRow()));
 
       await inventoryService.adjustUnits("hosp-1", "O+", "WHOLE_BLOOD", 1);
+
+      const opts = BloodInventory.findOneAndUpdate.mock.calls[0].arguments[2];
+      assert.deepEqual(opts, { new: true, upsert: true });
+    });
+
+    test("negative delta keeps the guarded, non-upserting path { new: true }", async () => {
+      addMock(BloodInventory, "findOneAndUpdate", mock.fn(async () => makeFakeRow()));
+
+      await inventoryService.adjustUnits("hosp-1", "O+", "WHOLE_BLOOD", -1);
 
       const opts = BloodInventory.findOneAndUpdate.mock.calls[0].arguments[2];
       assert.deepEqual(opts, { new: true });

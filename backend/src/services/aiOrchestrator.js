@@ -237,7 +237,11 @@ async function coordinateRealRequest({ requestId }) {
   const matchingResult = await matchingService.findCandidates(requestId, { limit: 20 });
   const candidates = matchingResult.candidates || [];
   const donorIds = candidates.map((c) => c.donorId);
-  const hospitalDoc = await User.findById(request.hospital).select("name email address location").lean();
+  // A missing/odd hospital reference must not 500 the whole coordination call.
+  const hospitalDoc = await User.findById(request.hospital)
+    .select("name email address location")
+    .lean()
+    .catch(() => null);
 
   // 3. Run all three Arefa agents in parallel
   //    All share the same candidateSet to avoid redundant queries.
@@ -266,12 +270,18 @@ async function coordinateRealRequest({ requestId }) {
       agentStatus.geo = "ERROR";
       return { ordered: [], estimated: [], error: "Geo coordination failed." };
     }),
-    donorMatchingAgent.selectDonors(requestId, { candidateSet: candidates }).then((r) => {
+    // IMPORTANT: donorMatchingAgent.selectDonors expects the *full* funnel
+    // result object ({ candidates: [...] }), not the bare candidates array.
+    // Passing the array made `result.candidates` undefined inside the agent,
+    // so it always returned primary:null / contactOrder:[] — which meant the
+    // orchestrator never called contactNextDonor and no MATCH_FOUND was ever
+    // created from the AI Coordination path.
+    donorMatchingAgent.selectDonors(requestId, { candidateSet: matchingResult }).then((r) => {
       agentStatus.matching = "COMPLETED";
       return r;
     }).catch((err) => {
       agentStatus.matching = "ERROR";
-      return { requestId, primary: null, backups: [], selection: { candidates }, error: "Donor matching failed." };
+      return { requestId, primary: null, backups: [], contactOrder: [], selection: { candidates }, error: "Donor matching failed." };
     }),
   ]);
 
@@ -289,10 +299,23 @@ async function coordinateRealRequest({ requestId }) {
   });
   agentStatus.manager = "COMPLETED";
 
-  // 6. Attach all agent outputs for frontend display
+  // 6. Attach all agent outputs for frontend display.
+  //    Add a couple of field aliases so the AI Coordination cards render the
+  //    same shape the agents actually return (byEta vs ordered/estimated,
+  //    later vs eligibleLater) instead of showing zeros.
+  if (geoResult && Array.isArray(geoResult.byEta)) {
+    geoResult.ordered = geoResult.ordered || geoResult.byEta;
+    geoResult.estimated = geoResult.estimated || geoResult.byEta;
+  }
+  if (eligibilityResult && Array.isArray(eligibilityResult.later)) {
+    eligibilityResult.eligibleLater = eligibilityResult.eligibleLater || eligibilityResult.later;
+  }
   result.eligibilityResult = eligibilityResult;
   result.geoResult = geoResult;
   result.selection = selection;
+  // The scored candidate list, so the AI Coordination UI can show real
+  // "reviewed / compatible" counts instead of always rendering zero.
+  result.candidates = candidates;
   result.agentStatus = agentStatus;
   result.requestInfo = {
     bloodGroup: request.bloodGroup,
@@ -320,7 +343,10 @@ async function coordinateRealRequest({ requestId }) {
 
   const populateDonor = async (donorId) => {
     if (!donorId) return null;
-    const profile = await DonorProfile.findOne({ user: donorId }).populate("user", "name email phone bloodGroup").lean();
+    const profile = await DonorProfile.findOne({ user: donorId })
+      .populate("user", "name email phone bloodGroup")
+      .lean()
+      .catch(() => null);
     if (!profile) return null;
 
     const donorCandidate = donorCandidates.find((candidate) => candidate.donorId === String(donorId)) || null;
@@ -362,7 +388,15 @@ async function coordinateRealRequest({ requestId }) {
   //    This creates the MATCH_FOUND notification and sends the email.
   const responseService = require("./responseService");
   if (result.nextAction === "CONTACT_PRIMARY_DONOR" && request.status === "VERIFIED") {
-    const contactOrder = (selection && selection.contactOrder) || [];
+    // Prefer the matching agent's ordered contact list. Fall back to building
+    // one from the Manager's recommendation + backups so a single missing
+    // field can never again silently skip contacting the donor.
+    let contactOrder = (selection && selection.contactOrder) || [];
+    if (contactOrder.length === 0 && result.recommendedDonor) {
+      contactOrder = [result.recommendedDonor, ...(result.backupDonors || []).map((d) => d.donorId)]
+        .filter(Boolean)
+        .map(String);
+    }
     if (contactOrder.length > 0) {
       try {
         const contactResult = await responseService.contactNextDonor({

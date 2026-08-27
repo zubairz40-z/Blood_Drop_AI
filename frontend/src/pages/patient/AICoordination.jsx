@@ -220,7 +220,7 @@ function AICoordination() {
     ...backupDonorMarkers,
   ]
 
-  const candidates = selection.selection?.candidates || []
+  const candidates = result.candidates || selection.selection?.candidates || []
   const recommendedCandidate = candidates.find(c => c.donorId === result.recommendedDonor)
 
   const matchingOutputs = [
