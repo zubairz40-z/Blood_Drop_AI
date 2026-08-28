@@ -10,7 +10,14 @@ const roleRoutes = {
   Admin: '/admin/notifications',
 }
 
-function NotificationBell({ count = 0, notifications = [], role = 'Donor', className = '' }) {
+function NotificationBell({
+  count = 0,
+  notifications = [],
+  role = 'Donor',
+  className = '',
+  onItemClick,
+  onMarkAllRead,
+}) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const navigate = useNavigate()
@@ -52,7 +59,10 @@ function NotificationBell({ count = 0, notifications = [], role = 'Donor', class
             <p className="text-sm font-semibold text-brand">Notifications</p>
             {count > 0 && (
               <button
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  onMarkAllRead?.()
+                  setOpen(false)
+                }}
                 aria-label="Mark all as read"
                 className="text-xs text-brand hover:text-brand-hover font-medium cursor-pointer"
               >
@@ -76,12 +86,14 @@ function NotificationBell({ count = 0, notifications = [], role = 'Donor', class
                   }`}
                   onClick={() => {
                     setOpen(false)
+                    onItemClick?.(n)
                     if (n.actionPath) navigate(n.actionPath)
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
                       setOpen(false)
+                      onItemClick?.(n)
                       if (n.actionPath) navigate(n.actionPath)
                     }
                   }}

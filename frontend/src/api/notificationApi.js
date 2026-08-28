@@ -114,5 +114,6 @@ function formatTimestamp(iso) {
 
 function buildActionPath(type, requestId) {
   if (type === 'MATCH_FOUND') return `/donor/requests/${requestId}`
+  if (type === 'DONATION_CONFIRMED') return '/donor/history'
   return `/patient/requests/${requestId}/tracking`
 }

@@ -1,23 +1,60 @@
+import { useState, useEffect, useCallback } from 'react'
 import { Menu } from 'lucide-react'
 import NotificationBell from '../common/NotificationBell'
 import DashboardProfileMenu from './DashboardProfileMenu'
-import { demoNotifications } from '../../data/demoNotifications'
 import { useAuth } from '../../context/AuthContext'
+import {
+  fetchNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from '../../api/notificationApi'
 
-const roleKeyMap = {
-  Donor: 'donor',
-  Patient: 'patient',
-  Hospital: 'hospital',
-  Volunteer: 'volunteer',
-  Admin: 'admin',
-}
+// How often the bell polls for new notifications. Matches the cadence
+// RequestTracking already uses for its own status refresh.
+const POLL_MS = 8000
 
 function DashboardTopbar({ roleLabel = 'Donor', onMenuClick }) {
   const { profile } = useAuth()
   const name = profile?.name || 'User'
-  const roleKey = roleKeyMap[roleLabel] || 'donor'
-  const notifications = demoNotifications[roleKey] || []
-  const unreadCount = notifications.filter((n) => !n.read).length
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  const load = useCallback(async () => {
+    try {
+      const result = await fetchNotifications()
+      setNotifications(result.notifications)
+      setUnreadCount(result.unreadCount)
+    } catch {
+      // Keep whatever we last had if a poll fails
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+    const timer = setInterval(load, POLL_MS)
+    return () => clearInterval(timer)
+  }, [load])
+
+  async function handleItemClick(n) {
+    if (n.read) return
+    setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)))
+    setUnreadCount((prev) => Math.max(0, prev - 1))
+    try {
+      await markNotificationRead(n.id)
+    } catch {
+      load()
+    }
+  }
+
+  async function handleMarkAllRead() {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    setUnreadCount(0)
+    try {
+      await markAllNotificationsRead()
+    } catch {
+      load()
+    }
+  }
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 sm:px-6 bg-brand border-b border-brand/20 lg:pl-[260px]">
@@ -37,6 +74,8 @@ function DashboardTopbar({ roleLabel = 'Donor', onMenuClick }) {
           count={unreadCount}
           notifications={notifications}
           role={roleLabel}
+          onItemClick={handleItemClick}
+          onMarkAllRead={handleMarkAllRead}
         />
         <DashboardProfileMenu name={name} role={roleLabel} />
       </div>

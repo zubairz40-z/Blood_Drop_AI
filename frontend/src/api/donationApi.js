@@ -33,11 +33,13 @@ export async function fetchPendingDonations() {
  * Triggers eligibility recalculation on the backend.
  *
  * @param {string} donationId
- * @returns {object} the confirmed donation
+ * @returns {{ donation: object, requestStatus: string|null }} the confirmed
+ *   donation and the resulting status of the request it was recorded against
+ *   (so the UI can say "fulfilled" only when that is actually true).
  */
 export async function confirmDonation(donationId) {
   const { data } = await api.patch(`/api/donations/${donationId}/confirm`)
-  return data.donation
+  return { donation: data.donation, requestStatus: data.requestStatus }
 }
 
 export async function createDonation({ requestId, donorId, units = 1 }) {

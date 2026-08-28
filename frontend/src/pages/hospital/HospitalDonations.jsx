@@ -5,6 +5,7 @@ import Badge from '../../components/ui/Badge'
 import Card from '../../components/ui/Card'
 import Table from '../../components/ui/Table'
 import Button from '../../components/ui/Button'
+import Alert from '../../components/ui/Alert'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import { fetchPendingDonations, confirmDonation } from '../../api/donationApi'
 import { toComponentLabel } from '../../api/mappers'
@@ -61,6 +62,8 @@ function HospitalDonations() {
   const [donations, setDonations] = useState([])
   const [loading, setLoading] = useState(true)
   const [confirmingId, setConfirmingId] = useState(null)
+  const [feedback, setFeedback] = useState(null)
+  const [error, setError] = useState(null)
 
   const load = useCallback(async () => {
     try {
@@ -81,12 +84,20 @@ function HospitalDonations() {
 
   async function handleConfirm(donationId) {
     setConfirmingId(donationId)
+    setError(null)
     try {
-      await confirmDonation(donationId)
+      const { requestStatus } = await confirmDonation(donationId)
       // Remove from pending list after confirmation
       setDonations((prev) => prev.filter((d) => d.id !== donationId))
-    } catch {
-      // Leave in list on error
+      // Only say "fulfilled" when the request's real status backs it up.
+      setFeedback(
+        requestStatus === 'FULFILLED'
+          ? 'Donation confirmed successfully. The blood request has been fulfilled.'
+          : 'Donation confirmed successfully.'
+      )
+      setTimeout(() => setFeedback(null), 4000)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not confirm this donation.')
     } finally {
       setConfirmingId(null)
     }
@@ -123,6 +134,17 @@ function HospitalDonations() {
           <Badge variant="role-hospital">Hospital</Badge>
         </div>
       </div>
+
+      {feedback && (
+        <Alert variant="success" onDismiss={() => setFeedback(null)}>
+          {feedback}
+        </Alert>
+      )}
+      {error && (
+        <Alert variant="error" onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
       <Card title="Pending Confirmation">
         <Table

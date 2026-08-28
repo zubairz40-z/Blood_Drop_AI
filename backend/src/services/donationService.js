@@ -199,7 +199,8 @@ async function confirmDonation({ donationId, hospitalId }) {
     }
   }
 
-  return donation;
+  // requestStatus lets the hospital UI say "fulfilled" only when it's actually true.
+  return { donation, requestStatus: request ? request.status : null };
 }
 
 /**

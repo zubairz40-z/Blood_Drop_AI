@@ -102,12 +102,12 @@ async function getDonationById(req, res, next) {
 /** PATCH /api/donations/:id/confirm — the only place eligibility changes */
 async function confirmDonation(req, res, next) {
   try {
-    const donation = await donationService.confirmDonation({
+    const { donation, requestStatus } = await donationService.confirmDonation({
       donationId: req.params.id,
       hospitalId: req.currentUser._id,
     });
 
-    res.json({ success: true, donation });
+    res.json({ success: true, donation, requestStatus });
   } catch (err) {
     next(err);
   }
